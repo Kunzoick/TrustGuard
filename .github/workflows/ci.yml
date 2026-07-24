@@ -107,7 +107,7 @@ jobs:
       # Rule 19.6: CVSS >= 7.0 fails the build. Suppressions in
       # dependency-check-suppression.xml require reviewer/date/next-review.
       - name: OWASP Dependency-Check
-        run: mvn -B dependency-check:check
+        run: mvn -B dependency-check:check -Dnvd.api.key=${{ secrets.NVD_API_KEY }}
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
