@@ -1,0 +1,114 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+  TrustGuard Checkstyle configuration.
+
+  Enforces (Rule 17.7 - build failure, never a code review comment):
+    - No System.out.println
+    - No System.err.println
+    - No printStackTrace()
+
+  Also enforces (Rule 19.5):
+    - Alphabetical import ordering
+    - Maximum line length: 120 characters
+    - JavaDoc required on public methods in shared/api modules
+      (activation gated on B-003 - see commented block below, CF-002)
+-->
+<module name="Checker">
+
+  <property name="charset" value="UTF-8"/>
+  <property name="severity" value="error"/>
+  <property name="fileExtensions" value="java, properties, xml"/>
+
+  <!-- Rule 19.5 - maximum line length: 120 characters -->
+  <module name="LineLength">
+    <property name="max" value="120"/>
+    <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://"/>
+  </module>
+
+  <module name="TreeWalker">
+
+    <!-- ============================================================
+         Rule 17.7 - HARD BUILD FAILURES
+         These are never warnings. Checkstyle severity above is "error".
+         ============================================================ -->
+
+    <module name="RegexpSinglelineJava">
+      <property name="format" value="System\.out\.println"/>
+      <property name="message"
+                 value="Rule 17.7 violation: System.out.println is prohibited. Use SLF4J via the Logstash Logback Encoder."/>
+      <property name="ignoreComments" value="true"/>
+    </module>
+
+    <module name="RegexpSinglelineJava">
+      <property name="format" value="System\.err\.println"/>
+      <property name="message"
+                 value="Rule 17.7 violation: System.err.println is prohibited. Use SLF4J via the Logstash Logback Encoder."/>
+      <property name="ignoreComments" value="true"/>
+    </module>
+
+    <module name="RegexpSinglelineJava">
+      <property name="format" value="\.printStackTrace\(\s*\)"/>
+      <property name="message"
+                 value="Rule 17.7 violation: printStackTrace() is prohibited. Log the exception via SLF4J at ERROR level instead."/>
+      <property name="ignoreComments" value="true"/>
+    </module>
+
+    <!-- ============================================================
+         Rule 19.5 - style and import ordering
+         ============================================================ -->
+
+    <module name="ImportOrder">
+      <property name="groups" value="java,javax,org,com"/>
+      <property name="ordered" value="true"/>
+      <property name="separated" value="true"/>
+      <property name="option" value="bottom"/>
+      <property name="sortStaticImportsAlphabetically" value="true"/>
+    </module>
+
+    <module name="UnusedImports"/>
+    <module name="RedundantImport"/>
+    <module name="AvoidStarImport"/>
+
+    <!-- ============================================================
+         CF-002 (Code v2 fix): JavaDoc enforcement, Rule 19.5.
+
+         "JavaDoc required on all public methods in shared and api
+         modules." Kept INERT here rather than active, because scoping
+         it to com.trustguard.shared.* and com.trustguard.api.* requires
+         a SuppressionXpathFilter, and those packages do not exist yet
+         (B-001 is infrastructure-only - zero Java source exists).
+
+         Registering the module now, commented out, in its correct
+         structural position - rather than as a prose note elsewhere in
+         the file - means it cannot be forgotten when B-003 creates the
+         first Java files under com.trustguard.shared and
+         com.trustguard.api. It is literally sitting where it needs to
+         activate.
+
+         ACTIVATE IN B-003:
+           1. Uncomment the <module name="JavadocMethod"> block below.
+           2. Add a SuppressionXpathFilter (or equivalent) restricting
+              enforcement to com.trustguard.shared.* and
+              com.trustguard.api.* only - per Rule 19.5, JavaDoc is
+              required in those two modules specifically, not
+              project-wide.
+           3. Confirm the build fails on an undocumented public method
+              in either of those packages, and does NOT fail on an
+              undocumented public method outside them (e.g. risk,
+              signals) - both directions must be verified.
+         ============================================================ -->
+    <!--
+    <module name="JavadocMethod">
+      <property name="accessModifiers" value="public"/>
+      <property name="allowMissingParamTags" value="false"/>
+      <property name="allowMissingReturnTag" value="false"/>
+    </module>
+    -->
+
+  </module>
+
+</module>

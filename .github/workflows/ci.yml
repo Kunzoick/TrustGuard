@@ -1,0 +1,250 @@
+name: CI
+
+# Rule 19.2: Jobs 1-3 run on every push and every PR.
+# Jobs 4-5 run only on merge to main. This keeps PR feedback fast.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Rule 19.1: these job names are registered as required status checks
+# in GitHub branch protection settings for main:
+#   build-and-test, security-scan, module-dependency-check,
+#   static-analysis, dependency-vulnerability-scan
+# NOTE: "module-dependency-check" (ArchUnit) and
+# "dependency-vulnerability-scan" run as part of compile-and-test /
+# security-scan respectively in this repo's job graph.
+
+permissions:
+  contents: read
+
+jobs:
+
+  # ============================================================
+  # JOB 1 - compile-and-test
+  # Rule 19.2 Job 1: unit tests, integration tests (Testcontainers),
+  # ArchUnit module boundary tests, property-based tests (jqwik),
+  # concurrency tests, JaCoCo coverage gate (>= 80%, Rule 18.9).
+  # ============================================================
+  compile-and-test:
+    name: compile-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@6a0805fcefea3d4657a47ac4c165951e33482018 # v4.2.2
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Run tests, ArchUnit, jqwik, and JaCoCo coverage gate
+        run: mvn -B clean verify -DskipStaticAnalysis=true -Ddependency-check.skip=true
+
+      # CF-005 resolved: SHA verified against
+      # https://github.com/actions/upload-artifact/releases/tag/v4.6.2
+      # (GitHub verified-signature badge confirmed) on 2026-07-23.
+      - name: Upload JaCoCo coverage report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2 - VERIFIED 2026-07-23
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+          retention-days: 14
+
+  # ============================================================
+  # JOB 2 - static-analysis
+  # Rule 19.2 Job 2 / Rule 19.5: SpotBugs (min bug rank MEDIUM),
+  # Checkstyle (no System.out, style), PMD.
+  # Gate: fails on any HIGH or CRITICAL finding.
+  # ============================================================
+  static-analysis:
+    name: static-analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@6a0805fcefea3d4657a47ac4c165951e33482018 # v4.2.2
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Checkstyle (Rule 17.7 - fails on System.out/err/printStackTrace)
+        run: mvn -B checkstyle:check
+
+      - name: SpotBugs (min bug rank MEDIUM)
+        run: mvn -B spotbugs:check
+
+      - name: PMD
+        run: mvn -B pmd:check
+
+  # ============================================================
+  # JOB 3 - security-scan
+  # Rule 19.2 Job 3 / Rule 19.6 / Rule 16.9:
+  # OWASP Dependency-Check, Trivy container scan, secret scan verification.
+  # Gate: fails if CVSS >= 7.0 or HIGH/CRITICAL container vulnerability.
+  # ============================================================
+  security-scan:
+    name: security-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@6a0805fcefea3d4657a47ac4c165951e33482018 # v4.2.2
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # Rule 19.6: CVSS >= 7.0 fails the build. Suppressions in
+      # dependency-check-suppression.xml require reviewer/date/next-review.
+      - name: OWASP Dependency-Check
+        run: mvn -B dependency-check:check
+
+      # Rule 19.7: pre-commit hooks are the first line of defence;
+      # this is the enforcement layer that catches anything that bypassed
+      # a local hook.
+      - name: Verify no secrets introduced (detect-secrets)
+        run: |
+          pip install --quiet detect-secrets==1.5.0
+          detect-secrets scan --baseline .secrets.baseline
+          detect-secrets audit --report --fail-on-unaudited .secrets.baseline
+
+      - name: Build image for local scan (not pushed)
+        run: docker build -t trustguard:pr-scan .
+        continue-on-error: false
+
+      # CF-001 resolved: SHA verified against
+      # https://github.com/aquasecurity/trivy-action/releases/tag/v0.36.0
+      # (GitHub verified-signature badge confirmed) on 2026-07-23.
+      #
+      # IMPORTANT: the version originally referenced here (0.28.0, no v
+      # prefix) was one of 75 version tags compromised in the March 2026
+      # aquasecurity/trivy-action supply chain attack (maintainer
+      # credentials compromised, tags force-pushed to malicious commits
+      # that stole secrets from CI runner memory). This is now pinned to
+      # v0.36.0 - the current release, published after the incident, with
+      # a verified commit signature - not merely a SHA-pinned version of
+      # the previously-referenced (and compromised) tag.
+      - name: Trivy scan (PR - local image, not pushed)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0 - VERIFIED 2026-07-23
+        with:
+          image-ref: trustguard:pr-scan
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+
+  # ============================================================
+  # Commit message format - Rule 19.3
+  # ============================================================
+  commitlint:
+    name: commitlint
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0
+
+      - name: Lint PR commits (conventional commits)
+        run: |
+          npm install --no-save @commitlint/cli@19.5.0 @commitlint/config-conventional@19.5.0
+          echo "module.exports = {extends: ['@commitlint/config-conventional']};" > commitlint.config.js
+          npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}
+
+  # ============================================================
+  # JOB 4 - build-docker-image
+  # Rule 19.2 Job 4: runs ONLY on merge to main.
+  # ============================================================
+  build-docker-image:
+    name: build-docker-image
+    runs-on: ubuntu-latest
+    needs: [compile-and-test, static-analysis, security-scan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@6a0805fcefea3d4657a47ac4c165951e33482018 # v4.2.2
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build application jar
+        run: mvn -B clean package -DskipTests
+
+      # CF-001 resolved: SHA verified against
+      # https://github.com/docker/build-push-action/releases/tag/v7.2.0
+      # (GitHub verified-signature badge confirmed) on 2026-07-23.
+      # NOTE: version bumped from v6.9.0 (originally referenced,
+      # unverified) to v7.2.0 (currently latest, verified) rather than
+      # hunting for a SHA on a tag I had never confirmed existed
+      # correctly. v7 requires Actions Runner >= 2.327.1 (Node 24) -
+      # GitHub-hosted ubuntu-latest runners already satisfy this.
+      - name: Build production image
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0 - VERIFIED 2026-07-23
+        with:
+          context: .
+          push: false
+          tags: trustguard:${{ github.sha }}
+          load: true
+
+      - name: Trivy scan (registry-bound image)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0 - VERIFIED 2026-07-23
+        with:
+          image-ref: trustguard:${{ github.sha }}
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+
+      # Push only after the scan above has passed (exit-code 1 halts the job).
+      - name: Push production image
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0 - VERIFIED 2026-07-23
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/${{ github.repository }}:latest
+
+  # ============================================================
+  # JOB 5 - deploy-staging
+  # Rule 19.2 Job 5: runs ONLY on merge to main, after Job 4.
+  # CF-003: placeholder accepted as Phase 1 Gate conditional debt -
+  # NOT a Code v2 blocker. Must be resolved before Phase 1 Gate closes.
+  # ============================================================
+  deploy-staging:
+    name: deploy-staging
+    runs-on: ubuntu-latest
+    needs: [build-docker-image]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      # CF-003 (Agent 4): recorded as Phase 1 Gate debt, not a Code v2
+      # blocker. Deployment target platform requires an ADR before this
+      # placeholder can be replaced with a real deployment step.
+      - name: Deploy to staging (placeholder - target platform TBD, Phase 1 Gate debt per CF-003)
+        run: |
+          echo "Deployment target not yet configured - see CF-003 (Phase 1 Gate debt)."
+          exit 0
+
+      - name: Run SDK contract tests against staging (placeholder - SDK not yet built)
+        run: |
+          echo "TypeScript SDK (B-023) does not exist yet - nothing to run."
+          exit 0

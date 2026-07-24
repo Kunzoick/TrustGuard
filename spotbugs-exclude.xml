@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TrustGuard SpotBugs exclusion filter.
+
+  Rule 19.5: "Exclusion file: spotbugs-exclude.xml. Each exclusion requires
+  a comment with reviewer and date."
+
+  No exclusions exist yet — no production code has been written (B-001 is
+  infrastructure-only). Do not add a <Match> entry without:
+    1. A comment stating the reviewer's name and the date
+    2. A written justification for why the finding is a false positive
+       or an accepted risk
+
+  Template for future entries:
+
+  <Match>
+    <!-- Reviewer: <name> | Date: YYYY-MM-DD
+         Justification: <why this is a false positive / accepted risk> -->
+    <Class name="com.trustguard.example.SomeClass"/>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
+-->
+<FindBugsFilter>
+</FindBugsFilter>

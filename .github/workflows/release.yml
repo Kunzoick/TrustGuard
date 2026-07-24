@@ -1,0 +1,97 @@
+name: Release
+
+# Rule 19.3: every merge to main produces a tagged release, derived from
+# conventional commit messages:
+#   feat:                    -> MINOR
+#   fix:, perf:               -> PATCH
+#   feat!: / BREAKING CHANGE  -> MAJOR
+#   docs:, chore:, test:      -> no release triggered
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  tag-release:
+    name: tag-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0
+
+      - name: Determine version bump from commit messages since last tag
+        id: bump
+        run: |
+          set -euo pipefail
+
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -z "$LAST_TAG" ]; then
+            RANGE="HEAD"
+            LAST_TAG="v0.0.0"
+          else
+            RANGE="${LAST_TAG}..HEAD"
+          fi
+
+          COMMITS=$(git log "$RANGE" --pretty=format:"%s%n%b" || true)
+
+          BUMP="none"
+          if echo "$COMMITS" | grep -qE "^BREAKING CHANGE|!:"; then
+            BUMP="major"
+          elif echo "$COMMITS" | grep -qE "^feat(\(.+\))?:"; then
+            BUMP="minor"
+          elif echo "$COMMITS" | grep -qE "^(fix|perf)(\(.+\))?:"; then
+            BUMP="patch"
+          fi
+
+          echo "last_tag=${LAST_TAG}" >> "$GITHUB_OUTPUT"
+          echo "bump=${BUMP}" >> "$GITHUB_OUTPUT"
+
+      - name: Compute next version
+        id: next
+        if: steps.bump.outputs.bump != 'none'
+        run: |
+          set -euo pipefail
+          LAST_TAG="${{ steps.bump.outputs.last_tag }}"
+          BUMP="${{ steps.bump.outputs.bump }}"
+
+          VERSION=${LAST_TAG#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          NEXT_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "next_tag=${NEXT_TAG}" >> "$GITHUB_OUTPUT"
+
+      # Rule 19.4: CHANGELOG.md is maintained by the human operator / Agent
+      # 4 as part of the batch approval process, per the Keep a Changelog
+      # format - it is NOT auto-generated here. This workflow only tags.
+      - name: Create tag
+        if: steps.bump.outputs.bump != 'none'
+        run: |
+          set -euo pipefail
+          git config user.name "trustguard-release-bot"
+          git config user.email "release-bot@users.noreply.github.com"
+          git tag -a "${{ steps.next.outputs.next_tag }}" -m "Release ${{ steps.next.outputs.next_tag }}"
+          git push origin "${{ steps.next.outputs.next_tag }}"
+
+      - name: Create GitHub Release
+        if: steps.bump.outputs.bump != 'none'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.next.outputs.next_tag }}" \
+            --title "${{ steps.next.outputs.next_tag }}" \
+            --generate-notes
+
+      - name: No release-worthy commits
+        if: steps.bump.outputs.bump == 'none'
+        run: echo "No feat/fix/perf/BREAKING CHANGE commits since last tag - no release created."
