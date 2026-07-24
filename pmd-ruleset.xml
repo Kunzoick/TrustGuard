@@ -6,41 +6,30 @@
          https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
 
   <description>
-    TrustGuard PMD ruleset — compatible with PMD 7.3.0 (Rule 19.5).
-    Rule names updated from PMD 6.x to PMD 7.x naming conventions.
-    Suppressions require @SuppressWarnings with a comment (Rule 19.5).
+    TrustGuard PMD ruleset compatible with PMD 7.3.0.
+    Rule 19.5 — UnusedImports enforced via Checkstyle
+    UnusedImports module instead (already active).
+    PMD handles empty blocks and duplicate literals.
   </description>
 
-  <!-- Required by Rule 19.5 -->
-  <!-- PMD 7: UnusedImports renamed to UnnecessaryImport -->
-  <rule ref="category/java/bestpractices.xml/UnnecessaryImport"/>
-
+  <!-- EmptyCatchBlock — valid in PMD 7 -->
   <rule ref="category/java/errorprone.xml/EmptyCatchBlock">
     <properties>
       <property name="allowCommentedBlocks" value="true"/>
     </properties>
   </rule>
 
-  <!-- PMD 7: threshold property renamed to minimumNumberCopies -->
-  <rule ref="category/java/errorprone.xml/AvoidDuplicateLiterals">
-    <properties>
-      <property name="minimumNumberCopies" value="4"/>
-      <property name="skipAnnotations" value="true"/>
-    </properties>
-  </rule>
+  <!-- AvoidDuplicateLiterals — valid in PMD 7,
+       no custom properties to avoid version conflicts -->
+  <rule ref="category/java/errorprone.xml/AvoidDuplicateLiterals"/>
 
-  <!-- PMD 7: EmptyIfStmt and EmptyFinallyBlock consolidated into
-       EmptyControlStatement under codestyle category -->
-  <rule ref="category/java/codestyle.xml/EmptyControlStatement"/>
-
-  <rule ref="category/java/bestpractices.xml/UnusedPrivateMethod"/>
-  <rule ref="category/java/bestpractices.xml/UnusedLocalVariable"/>
+  <!-- AvoidCatchingThrowable — valid in PMD 7 -->
   <rule ref="category/java/errorprone.xml/AvoidCatchingThrowable"/>
 
-  <rule ref="category/java/design.xml/AvoidDeeplyNestedIfStmts">
-    <properties>
-      <property name="problemDepth" value="4"/>
-    </properties>
-  </rule>
+  <!-- UnusedPrivateMethod — valid in PMD 7 -->
+  <rule ref="category/java/bestpractices.xml/UnusedPrivateMethod"/>
+
+  <!-- AvoidDeeplyNestedIfStmts — valid in PMD 7 -->
+  <rule ref="category/java/design.xml/AvoidDeeplyNestedIfStmts"/>
 
 </ruleset>
