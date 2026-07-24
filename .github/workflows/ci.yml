@@ -108,6 +108,8 @@ jobs:
       # dependency-check-suppression.xml require reviewer/date/next-review.
       - name: OWASP Dependency-Check
         run: mvn -B dependency-check:check
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
       # Rule 19.7: pre-commit hooks are the first line of defence;
       # this is the enforcement layer that catches anything that bypassed

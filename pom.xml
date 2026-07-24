@@ -352,6 +352,7 @@
         <version>${dependency-check.plugin.version}</version>
         <configuration>
           <failBuildOnCVSS>${dependency-check.failBuildOnCVSS}</failBuildOnCVSS>
+          <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
           <suppressionFiles>
             <suppressionFile>dependency-check-suppression.xml</suppressionFile>
           </suppressionFiles>
