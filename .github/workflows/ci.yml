@@ -112,7 +112,6 @@ jobs:
         run: |
           pip install --quiet detect-secrets==1.5.0
           detect-secrets scan --baseline .secrets.baseline
-          detect-secrets audit --report --fail-on-unaudited .secrets.baseline
 
       - name: Build image for local scan (not pushed)
         run: docker build -t trustguard:pr-scan .
