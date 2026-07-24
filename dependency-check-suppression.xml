@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TrustGuard OWASP Dependency-Check suppression file.
+
+  Rule 19.6:
+    - No suppression without a note.
+    - No note without a reviewer and date.
+    - No note without a next review date.
+    - Suppressions are reviewed quarterly.
+    - Expired suppressions (past next review date) fail the build.
+
+  No suppressions exist yet — this is B-001, before any Dependency-Check
+  scan has run against real project dependencies.
+
+  Template for future entries:
+
+  <suppress>
+    <notes>CVE-2024-XXXXX — False positive. This CVE affects the web UI
+    component of library X. TrustGuard does not use the web UI component.
+    Reviewed by <name> on <YYYY-MM-DD>.
+    Next review: <YYYY-MM-DD + 90 days>
+    </notes>
+    <cve>CVE-2024-XXXXX</cve>
+  </suppress>
+-->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+</suppressions>
