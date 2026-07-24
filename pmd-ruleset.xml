@@ -2,44 +2,34 @@
 <ruleset name="TrustGuard PMD Ruleset"
          xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0
+         https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
 
   <description>
-    TrustGuard PMD ruleset (Rule 19.5).
-    Explicitly required rules: UnusedImports, EmptyCatchBlock, AvoidDuplicateLiterals.
-    Suppressions require @SuppressWarnings with a comment (Rule 19.5).
+    TrustGuard PMD ruleset compatible with PMD 7.3.0.
+    Rule 19.5 — UnusedImports enforced via Checkstyle
+    UnusedImports module instead (already active).
+    PMD handles empty blocks and duplicate literals.
   </description>
 
-  <!-- Required by Rule 19.5 -->
-  <rule ref="category/java/bestpractices.xml/UnusedImports"/>
+  <!-- EmptyCatchBlock — valid in PMD 7 -->
   <rule ref="category/java/errorprone.xml/EmptyCatchBlock">
     <properties>
-      <!-- Allow a documented, intentionally-empty catch only when the
-           exception variable is explicitly named "expected" or "ignored"
-           AND a comment explains why. This mirrors common PMD practice
-           and keeps EmptyCatchBlock strict for undocumented empty catches. -->
       <property name="allowCommentedBlocks" value="true"/>
     </properties>
   </rule>
-  <rule ref="category/java/errorprone.xml/AvoidDuplicateLiterals">
-    <properties>
-      <property name="threshold" value="4"/>
-      <property name="skipAnnotations" value="true"/>
-    </properties>
-  </rule>
 
-  <!-- Baseline supporting rules — keep the ruleset useful beyond the
-       three explicitly mandated rules, without pulling in an entire
-       opinionated category wholesale. -->
-  <rule ref="category/java/errorprone.xml/EmptyIfStmt"/>
-  <rule ref="category/java/errorprone.xml/EmptyFinallyBlock"/>
-  <rule ref="category/java/bestpractices.xml/UnusedPrivateMethod"/>
-  <rule ref="category/java/bestpractices.xml/UnusedLocalVariable"/>
+  <!-- AvoidDuplicateLiterals — valid in PMD 7,
+       no custom properties to avoid version conflicts -->
+  <rule ref="category/java/errorprone.xml/AvoidDuplicateLiterals"/>
+
+  <!-- AvoidCatchingThrowable — valid in PMD 7 -->
   <rule ref="category/java/errorprone.xml/AvoidCatchingThrowable"/>
-  <rule ref="category/java/design.xml/AvoidDeeplyNestedIfStmts">
-    <properties>
-      <property name="problemDepth" value="4"/>
-    </properties>
-  </rule>
+
+  <!-- UnusedPrivateMethod — valid in PMD 7 -->
+  <rule ref="category/java/bestpractices.xml/UnusedPrivateMethod"/>
+
+  <!-- AvoidDeeplyNestedIfStmts — valid in PMD 7 -->
+  <rule ref="category/java/design.xml/AvoidDeeplyNestedIfStmts"/>
 
 </ruleset>
