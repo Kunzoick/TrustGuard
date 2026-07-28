@@ -262,6 +262,10 @@
             <id>jacoco-check</id>
             <goals><goal>check</goal></goals>
             <configuration>
+              <excludes>
+                <!-- Main application entry point — not unit testable (Rule 18.9) -->
+                <exclude>com/trustguard/TrustguardApplication.class</exclude>
+              </excludes>
               <rules>
                 <rule>
                   <element>BUNDLE</element>
