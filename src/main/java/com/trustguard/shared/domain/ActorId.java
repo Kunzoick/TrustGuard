@@ -15,7 +15,8 @@ public record ActorId(String value) {
             throw new IllegalArgumentException("ActorId value must not be null or blank");
         }
         if(value.length() > MAX_LENGTH){
-            throw new IllegalArgumentException("ActorId value must not exceed "+ MAX_LENGTH + " characters, was: "+ value.length());
+            throw new IllegalArgumentException("ActorId value must not exceed "+ MAX_LENGTH +
+                    " characters, was: "+ value.length());
         }
     }
 }
