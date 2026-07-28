@@ -3,8 +3,9 @@ import java.util.UUID;
 
 /**
  * Event identifier-> Rule 6.1 specifies "UUID v7- sortable by time" for every event entering the platform.
- * As woth correlationId, UUID v7 is structurally a standard UUID, so this record validates general UUID format rather than attempting to verify version-specific bits, which a domain primitive receiving an already formed
- * ID cannot independently verify anyway
+ * As woth correlationId, UUID v7 is structurally a standard UUID,
+ * so this record validates general UUID format rather than attempting to verify version-specific bits,
+ * which a domain primitive receiving an already formed ID cannot independently verify anyway
  */
 public record EventId(String value) {
     public EventId{

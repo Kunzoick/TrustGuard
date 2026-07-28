@@ -2,7 +2,8 @@ package com.trustguard.shared.error;
 import com.trustguard.shared.enums.ErrorCode;
 
 /**
- * Base class for infrastructure failures-> redis unreachable, PostgreSQL slow, RabbitMQ down- maps to a 5xx response at the API layer
+ * Base class for infrastructure failures-> redis unreachable, PostgreSQL slow,
+ * RabbitMQ down- maps to a 5xx response at the API layer
  * as distinct from TrustGuardException's 4xx business rule violations
  */
 
