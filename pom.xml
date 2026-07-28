@@ -265,6 +265,9 @@
               <excludes>
                 <!-- Main application entry point — not unit testable (Rule 18.9) -->
                 <exclude>com/trustguard/TrustguardApplication.class</exclude>
+                <!-- Spring Boot config classes — tested via integration
+                     tests in B-003, not unit testable now (Rule 18.9) -->
+                <exclude>com/trustguard/infrastructure/config/*.class</exclude>
               </excludes>
               <rules>
                 <rule>
