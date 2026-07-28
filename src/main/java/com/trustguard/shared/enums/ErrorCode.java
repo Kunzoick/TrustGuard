@@ -2,9 +2,11 @@ package com.trustguard.shared.enums;
 
 /**
  * Central error code registry(rule 21.7). every error the platform can return is named here first,
- * no code may be used elsewhere until it exists in this enum. Once published a code is never renamed or removed(rule 13.3, rule 21.2); only addition are permitted
+ * no code may be used elsewhere until it exists in this enum.
+ * Once published a code is never renamed or removed(rule 13.3, rule 21.2); only addition are permitted
  *
- * OUTBOX_PUBLISH_FAILED added requires outboxPublishException to exist, but this registry orginally had no dedicated code for it, forcing an INTERNAL_ERROR mapping that hid a specific, retryable infrastructure failure behind a generic catch-all
+ * OUTBOX_PUBLISH_FAILED added requires outboxPublishException to exist,but this registry orginally had no dedicated code for it,
+ * forcing an INTERNAL_ERROR mapping that hid a specific, retryable infrastructure failure behind a generic catch-all
  * The description field is a local convenience for readability
  */
 public enum ErrorCode {
