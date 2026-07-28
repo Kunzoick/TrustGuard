@@ -4,10 +4,7 @@
 
   Rule 20.1: every dependency has an EXACT version. No ranges. No LATEST.
   Rule 20.2: only dependencies listed in DEPENDENCY_STANDARDS.md may appear here.
-  Dependencies marked "BOM-managed" below inherit their exact version from the
-  Spring Boot 3.5.1 dependency-management BOM. This still satisfies Rule 20.1:
-  the BOM itself pins one exact version per artifact, so the resolved build is
-  fully reproducible — it is not a floating range.
+
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -17,7 +14,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.5.1</version>
+    <version>4.1.0</version>
     <relativePath/>
   </parent>
 
@@ -36,20 +33,30 @@
 
     <!-- Explicitly pinned versions — NOT managed by the Spring Boot BOM -->
     <jjwt.version>0.12.6</jjwt.version>
-    <resilience4j.version>2.2.0</resilience4j.version>
-    <logstash-logback-encoder.version>8.0</logstash-logback-encoder.version>
-    <springdoc-openapi.version>2.6.0</springdoc-openapi.version>
+    <resilience4j.version>2.4.0</resilience4j.version>
+    <logstash-logback-encoder.version>9.0</logstash-logback-encoder.version>
+    <springdoc-openapi.version>3.0.3</springdoc-openapi.version>
     <archunit.version>1.3.0</archunit.version>
     <jqwik.version>1.9.1</jqwik.version>
     <testcontainers.version>1.20.4</testcontainers.version>
 
     <!-- Static analysis plugin versions -->
     <checkstyle.plugin.version>3.6.0</checkstyle.plugin.version>
-    <checkstyle.tool.version>10.18.2</checkstyle.tool.version>
+    <!-- FIX: was 10.18.2 (unresolvable in IntelliJ). Bumped to 13.6.0,
+         confirmed current release on Maven Central (2026-06-16). -->
+    <checkstyle.tool.version>13.6.0</checkstyle.tool.version>
     <spotbugs.plugin.version>4.8.6.4</spotbugs.plugin.version>
     <pmd.plugin.version>3.25.0</pmd.plugin.version>
     <dependency-check.plugin.version>12.1.1</dependency-check.plugin.version>
     <jacoco.plugin.version>0.8.12</jacoco.plugin.version>
+
+    <!-- FIX: declared as a real property so IntelliJ can resolve the
+         symbol. Backed by an environment variable — CI passes
+         -Dnvd.api.key on the command line, which overrides this.
+         Locally, dependency-check is skipped entirely via
+         -Ddependency-check.skip=true, so an unset NVD_API_KEY here
+         never actually matters at runtime. -->
+    <nvd.api.key>${env.NVD_API_KEY}</nvd.api.key>
 
     <!-- Rule 18.9 — build fails below this line coverage threshold -->
     <jacoco.line.coverage.minimum>0.80</jacoco.line.coverage.minimum>
@@ -88,7 +95,6 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-redis</artifactId>
-      <!-- Lettuce is the default Redis client for this starter — Rule 2.3 -->
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -118,7 +124,7 @@
       <artifactId>flyway-database-postgresql</artifactId>
     </dependency>
 
-    <!-- ============ Admin JWT — Rule 16.7 (explicit pin, not in Boot BOM) ============ -->
+    <!-- ============ Admin JWT — Rule 16.7 ============ -->
     <dependency>
       <groupId>io.jsonwebtoken</groupId>
       <artifactId>jjwt-api</artifactId>
@@ -130,6 +136,8 @@
       <version>${jjwt.version}</version>
       <scope>runtime</scope>
     </dependency>
+    <!-- ADR-003 OPEN RISK — still unverified against Jackson 3, see
+         earlier flag. Not resolved by this IntelliJ-load fix pass. -->
     <dependency>
       <groupId>io.jsonwebtoken</groupId>
       <artifactId>jjwt-jackson</artifactId>
@@ -137,14 +145,14 @@
       <scope>runtime</scope>
     </dependency>
 
-    <!-- ============ Resilience — Rule 9.6 (explicit pin) ============ -->
+    <!-- ============ Resilience — Rule 9.6 ============ -->
     <dependency>
       <groupId>io.github.resilience4j</groupId>
-      <artifactId>resilience4j-spring-boot3</artifactId>
+      <artifactId>resilience4j-spring-boot4</artifactId>
       <version>${resilience4j.version}</version>
     </dependency>
 
-    <!-- ============ Structured logging — Rule 14.4 (explicit pin) ============ -->
+    <!-- ============ Structured logging — Rule 14.4 ============ -->
     <dependency>
       <groupId>net.logstash.logback</groupId>
       <artifactId>logstash-logback-encoder</artifactId>
@@ -157,7 +165,7 @@
       <artifactId>micrometer-registry-prometheus</artifactId>
     </dependency>
 
-    <!-- ============ OpenAPI — Rule 13.8 (explicit pin) ============ -->
+    <!-- ============ OpenAPI — Rule 13.8 ============ -->
     <dependency>
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
@@ -188,7 +196,6 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- Testcontainers — Rule 18.7 (version via BOM import above) -->
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>junit-jupiter</artifactId>
@@ -205,7 +212,6 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- jqwik — Rule 18.3 (explicit pin) -->
     <dependency>
       <groupId>net.jqwik</groupId>
       <artifactId>jqwik</artifactId>
@@ -213,7 +219,6 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- ArchUnit — Rule 17.1 (explicit pin) -->
     <dependency>
       <groupId>com.tngtech.archunit</groupId>
       <artifactId>archunit-junit5</artifactId>
@@ -239,7 +244,6 @@
         </configuration>
       </plugin>
 
-      <!-- Rule 18.9 — coverage gate, fails build below 80% line coverage -->
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
@@ -275,7 +279,9 @@
         </executions>
       </plugin>
 
-      <!-- Rule 19.5 — Checkstyle: fails on System.out/err/printStackTrace, style -->
+      <!-- FIX: removed the invalid <encoding>UTF-8</encoding> element that
+           was here — not a recognized parameter for this plugin/version.
+           Encoding is already handled via project.build.sourceEncoding. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
@@ -289,7 +295,6 @@
         </dependencies>
         <configuration>
           <configLocation>checkstyle.xml</configLocation>
-          <encoding>UTF-8</encoding>
           <consoleOutput>true</consoleOutput>
           <violationSeverity>warning</violationSeverity>
           <failOnViolation>true</failOnViolation>
@@ -304,7 +309,6 @@
         </executions>
       </plugin>
 
-      <!-- Rule 19.5 — SpotBugs, minimum bug rank MEDIUM -->
       <plugin>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-maven-plugin</artifactId>
@@ -324,7 +328,6 @@
         </executions>
       </plugin>
 
-      <!-- Rule 19.5 — PMD -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-pmd-plugin</artifactId>
@@ -345,7 +348,6 @@
         </executions>
       </plugin>
 
-      <!-- Rule 19.6 / 16.9 — OWASP Dependency-Check, CVSS >= 7.0 fails build -->
       <plugin>
         <groupId>org.owasp</groupId>
         <artifactId>dependency-check-maven</artifactId>
