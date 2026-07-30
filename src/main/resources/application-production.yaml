@@ -1,0 +1,36 @@
+# Production-profile overrides. Spring Boot loads this automatically
+# when SPRING_PROFILES_ACTIVE=production is set. Combined with
+# TrustGuardApplication's TlsEnforcementListener, this is where Rule
+# 2.10 becomes real: the listener checks server.ssl.enabled at
+# startup, and this file is where a real deployment would set it to
+# true alongside real keystore configuration — never hardcoded here.
+
+server:
+  ssl:
+    # Rule 2.10: defaults to false even in the production profile.
+    # This is deliberate — the safe default is "refuse to start"
+    # until whoever deploys this explicitly sets SERVER_SSL_ENABLED=true
+    # alongside real certificate configuration below. Hardcoding true
+    # here would silently defeat the entire startup gate in
+    # TrustGuardApplication.
+    enabled: ${SERVER_SSL_ENABLED:false}
+    # Real certificate configuration is deployment-specific and does
+    # not exist as a file in this repository. Rule 15.2 permits TLS
+    # termination either at a reverse proxy/load balancer OR at the
+    # application directly — if terminating at the application, these
+    # three properties are supplied via environment variables at
+    # deploy time, never committed:
+    key-store: ${SERVER_SSL_KEY_STORE:}
+    key-store-password: ${SERVER_SSL_KEY_STORE_PASSWORD:}
+    key-alias: ${SERVER_SSL_KEY_ALIAS:}
+
+management:
+  endpoint:
+    health:
+      # Overrides the base file's "always". Full health detail
+      # (hostnames, connection error messages) is unnecessary exposure
+      # once real production traffic exists. Not an explicit Contract
+      # rule — a judgment call in the spirit of Rule 16.1. Revisit once
+      # B-006's real API-key auth can gate /actuator/health/** instead
+      # of the current permit-all skeleton in SecurityConfig.
+      show-details: never

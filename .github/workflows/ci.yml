@@ -113,9 +113,12 @@ jobs:
           pip install --quiet detect-secrets==1.5.0
           detect-secrets scan --baseline .secrets.baseline
 
+      # CF-005 (B-003): continue-on-error was true because no Dockerfile
+      # existed yet (DEV-002). The Dockerfile now exists in this batch —
+      # a build failure here is a real failure, not an expected gap.
       - name: Build image for local scan (not pushed)
         run: docker build -t trustguard:pr-scan .
-        continue-on-error: true
+        continue-on-error: false
 
       # CF-001 resolved: SHA verified against
       # https://github.com/aquasecurity/trivy-action/releases/tag/v0.36.0
@@ -129,14 +132,24 @@ jobs:
       # v0.36.0 - the current release, published after the incident, with
       # a verified commit signature - not merely a SHA-pinned version of
       # the previously-referenced (and compromised) tag.
+
+      # CF-005 companion fix (B-003, flagged beyond the literal CF-005
+      # text — needs Agent 4 confirmation): exit-code was '0' and
+      # continue-on-error was true, meaning this step could find
+      # HIGH/CRITICAL vulnerabilities in the image and still report
+      # success. This appears to be the same DEV-002 workaround applied
+      # to the dependent scan step (can't meaningfully scan an image that
+      # never built), undocumented as its own deviation. Since the
+      # Dockerfile now exists, reverted to exit-code '1' and
+      # continue-on-error false to match Rule 19.2 Job 3's actual gate.
       - name: Trivy scan (PR - local image, not pushed)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0 - VERIFIED 2026-07-23
         with:
           image-ref: trustguard:pr-scan
           format: table
           severity: HIGH,CRITICAL
-          exit-code: '0'
-        continue-on-error: true  
+          exit-code: '1'
+        continue-on-error: false  
 
   # ============================================================
   # Commit message format - Rule 19.3

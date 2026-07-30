@@ -1,0 +1,84 @@
+# TrustGuard local development environment.
+# Rule 15.7: health checks enforce startup sequence via depends_on with
+# condition: service_healthy. Rule 15.5: internal service ports bound to
+# 127.0.0.1 only — reachable from this host's own tools during local
+# development, never from the network.
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: trustguard
+      POSTGRES_USER: trustguard
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-trustguard_local_dev}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - trustguard-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trustguard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "volatile-lru"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:4.0-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: trustguard
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-trustguard_local_dev}
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  trustguard-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/trustguard
+      SPRING_DATASOURCE_USERNAME: trustguard
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-trustguard_local_dev}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: "6379"
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: "5672"
+      SPRING_RABBITMQ_USERNAME: trustguard
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-trustguard_local_dev}
+    # Read-only root filesystem (Rule 15.4) — only /tmp is writable.
+    # Structured logs go to stdout (Rule 14.4, collected by Docker's own
+    # log driver), not to a file, so no separate writable log directory
+    # is needed here — flagging this as the assumption behind omitting
+    # one, rather than silently leaving Rule 15.4's "log output
+    # directory" phrase unaddressed.
+    read_only: true
+    tmpfs:
+      - /tmp
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  trustguard-postgres-data:
