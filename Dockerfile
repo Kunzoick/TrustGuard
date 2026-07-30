@@ -24,6 +24,8 @@ FROM eclipse-temurin:21-jre-alpine
 # Rule 15.4: every container runs as a non-root user. A container
 # escape vulnerability while running as root gives an attacker root on
 # the host — never acceptable.
+RUN apk update && apk upgrade --no-cache
+
 RUN addgroup -S trustguard && adduser -S trustguard -G trustguard
 
 # TRADE-OFF, flagged rather than silently resolved: Rule 15.4's own

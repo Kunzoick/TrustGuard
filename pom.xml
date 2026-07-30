@@ -40,6 +40,10 @@
     <jqwik.version>1.9.1</jqwik.version>
     <testcontainers.version>1.20.4</testcontainers.version>
 
+    <!-- CVE fixes found by Trivy (B-003 CI run, 2026-07-30) -->
+    <postgresql.version>42.7.12</postgresql.version>
+    <netty-bom.version>4.2.16.Final</netty-bom.version>
+
     <!-- Static analysis plugin versions -->
     <checkstyle.plugin.version>3.6.0</checkstyle.plugin.version>
     <!-- FIX: was 10.18.2 (unresolvable in IntelliJ). Bumped to 13.6.0,
@@ -71,6 +75,18 @@
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers-bom</artifactId>
         <version>${testcontainers.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- CVE-2026-59901 fix: forces every transitive Netty module to
+        4.2.16.Final consistently, rather than overriding
+        netty-codec-compression alone and risking a mismatched set of
+        Netty versions across the dependency tree. -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${netty-bom.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -110,9 +126,12 @@
     </dependency>
 
     <!-- ============ Database (BOM-managed) ============ -->
+    <!-- CVE-2026-54291 fix: explicit version override, since
+     Spring Boot 4.1.0's BOM currently manages 42.7.11. -->
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
+      <version>${postgresql.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>

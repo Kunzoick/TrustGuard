@@ -49,14 +49,16 @@ class ModuleDependencyTest {
             .that().resideInAPackage("com.trustguard.sdk..")
             .should().dependOnClassesThat(resideInAPackage("com.trustguard..")
                     .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.sdk.."))))
-            .because("Rule 2.2: sdk -> nothing internal. VACUOUS until B-006 creates the sdk module.");
+            .because("Rule 2.2: sdk -> nothing internal. VACUOUS until B-006 creates the sdk module.")
+            .allowEmptyShould(true);
 
     @ArchTest
     static final ArchRule tenant_depends_on_nothing_internal = noClasses()
             .that().resideInAPackage("com.trustguard.tenant..")
             .should().dependOnClassesThat(resideInAPackage("com.trustguard..")
                     .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.tenant.."))))
-            .because("Rule 2.2: tenant -> nothing internal. VACUOUS until B-005 creates the tenant module.");
+            .because("Rule 2.2: tenant -> nothing internal. VACUOUS until B-005 creates the tenant module.")
+            .allowEmptyShould(true);
 
     @ArchTest
     static final ArchRule signals_only_depends_on_tenant_and_shared = noClasses()
@@ -65,7 +67,8 @@ class ModuleDependencyTest {
                     .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.signals.."))
                             .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.tenant.."))
                                     .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.shared.."))))))
-            .because("Rule 2.2: signals -> tenant, shared only. VACUOUS until B-009 creates the signals module.");
+            .because("Rule 2.2: signals -> tenant, shared only. VACUOUS until B-009 creates the signals module.")
+            .allowEmptyShould(true);
 
     @ArchTest
     static final ArchRule risk_only_depends_on_permitted_modules = noClasses()
@@ -76,7 +79,8 @@ class ModuleDependencyTest {
                                     .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.tenant.."))
                                             .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.heuristics.."))
                                                     .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.shared.."))))))))
-            .because("Rule 2.2: risk -> signals, tenant, heuristics, shared only. VACUOUS until B-013 creates the risk module.");
+            .because("Rule 2.2: risk -> signals, tenant, heuristics, shared only. VACUOUS until B-013 creates the risk module.")
+            .allowEmptyShould(true);
 
     @ArchTest
     static final ArchRule ratelimit_only_depends_on_permitted_modules = noClasses()
@@ -86,7 +90,8 @@ class ModuleDependencyTest {
                             .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.risk.."))
                                     .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.tenant.."))
                                             .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.shared..")))))))
-            .because("Rule 2.2: rate-limit -> risk, tenant, shared only. VACUOUS until B-014 creates the ratelimit module.");
+            .because("Rule 2.2: rate-limit -> risk, tenant, shared only. VACUOUS until B-014 creates the ratelimit module.")
+            .allowEmptyShould(true);
 
     @ArchTest
     static final ArchRule heuristics_only_depends_on_permitted_modules = noClasses()
@@ -96,7 +101,8 @@ class ModuleDependencyTest {
                             .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.signals.."))
                                     .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.tenant.."))
                                             .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.shared..")))))))
-            .because("Rule 2.2: heuristics -> signals, tenant, shared only. VACUOUS until B-016 creates the heuristics module.");
+            .because("Rule 2.2: heuristics -> signals, tenant, shared only. VACUOUS until B-016 creates the heuristics module.")
+            .allowEmptyShould(true);
 
     @ArchTest
     static final ArchRule feedback_only_depends_on_permitted_modules = noClasses()
@@ -107,7 +113,8 @@ class ModuleDependencyTest {
                                     .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.audit.."))
                                             .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.tenant.."))
                                                     .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.shared.."))))))))
-            .because("Rule 2.2: feedback -> risk, audit, tenant, shared only. VACUOUS until B-019 creates the feedback module.");
+            .because("Rule 2.2: feedback -> risk, audit, tenant, shared only. VACUOUS until B-019 creates the feedback module.")
+            .allowEmptyShould(true);
 
     /**
      * The single most important rule in this file, per Rule 2.2's own
@@ -126,5 +133,6 @@ class ModuleDependencyTest {
             )
             .because("Rule 2.2: audit -> shared only, via the internal event bus, "
                     + "NEVER a direct import from risk or signals. VACUOUS until B-018 creates the audit module — "
-                    + "but this is the one rule in this file that matters most once it stops being vacuous.");
+                    + "but this is the one rule in this file that matters most once it stops being vacuous.")
+            .allowEmptyShould(true);
 }
