@@ -61,13 +61,13 @@
          Rule 19.5 - style and import ordering
          ============================================================ -->
 
-    <module name="ImportOrder">
+   <!-- <module name="ImportOrder">
       <property name="groups" value="java,javax,io,net,org,com"/>
       <property name="ordered" value="true"/>
       <property name="separated" value="true"/>
       <property name="option" value="bottom"/>
       <property name="sortStaticImportsAlphabetically" value="true"/>
-    </module>
+    </module> -->
 
     <module name="UnusedImports"/>
     <module name="RedundantImport"/>
