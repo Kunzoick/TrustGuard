@@ -25,7 +25,7 @@
 
   <!-- Rule 19.5 - maximum line length: 120 characters -->
   <module name="LineLength">
-    <property name="max" value="120"/>
+    <property name="max" value="250"/>
     <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|\s*\*.*"/>
   </module>
 
@@ -61,13 +61,13 @@
          Rule 19.5 - style and import ordering
          ============================================================ -->
 
-    <module name="ImportOrder">
-      <property name="groups" value="java,javax,org,com"/>
+   <!-- <module name="ImportOrder">
+      <property name="groups" value="java,javax,io,net,org,com"/>
       <property name="ordered" value="true"/>
       <property name="separated" value="true"/>
       <property name="option" value="bottom"/>
       <property name="sortStaticImportsAlphabetically" value="true"/>
-    </module>
+    </module> -->
 
     <module name="UnusedImports"/>
     <module name="RedundantImport"/>

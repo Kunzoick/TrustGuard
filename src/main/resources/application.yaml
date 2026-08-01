@@ -1,3 +1,90 @@
+# TrustGuard base configuration — applies to all profiles.
+# application-production.yml (same folder) overrides specific values
+# when the "production" Spring profile is active.
+
+server:
+  port: 8080
+  error:
+    # Rule 16.1: stack traces and internal messages never reach the
+    # HTTP response body. This is a config-only default available now;
+    # GlobalExceptionHandler's full error schema (Rule 16.6) is B-026,
+    # but there is no reason to leave this specific gap open until then.
+    include-stacktrace: never
+    include-message: never
+
 spring:
   application:
     name: trustguard
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/trustguard}
+    username: ${SPRING_DATASOURCE_USERNAME:trustguard}
+    password: ${SPRING_DATASOURCE_PASSWORD:trustguard_local_dev}
+
+  jpa:
+    hibernate:
+      # Rule 15.8: ddl-auto is always none. Flyway is the only
+      # authority on schema. Never let Hibernate auto-generate DDL.
+      ddl-auto: none
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    # No migration scripts exist yet (src/main/resources/db/migration
+    # is empty in this batch) — B-004 creates the first ones. Flyway
+    # runs harmlessly against an empty migrations folder, creating only
+    # its own history table. This is not an error state.
+
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:trustguard}
+    password: ${SPRING_RABBITMQ_PASSWORD:trustguard_local_dev}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Only health is exposed in this batch. Metrics (Rule 14.3) are
+        # wired in B-025 — exposing the endpoint now with nothing
+        # meaningful behind it yet would be premature per Principle 0.7.
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+      group:
+        # Rule 2.8: liveness = "is the JVM running", nothing more.
+        liveness:
+          include: livenessState
+        # Rule 2.8/2.9: readiness = "is the platform ready for
+        # traffic", which requires PostgreSQL and Redis to be UP, and
+        # tolerates RabbitMQ being DEGRADED rather than DOWN.
+        readiness:
+          include: readinessState,db,redis,rabbit
+      status:
+        # DOWN outranks DEGRADED: if Postgres is down AND RabbitMQ is
+        # down simultaneously, the aggregate status is DOWN, not
+        # DEGRADED — a full outage is never masked by a partial one.
+        order: DOWN,OUT_OF_SERVICE,DEGRADED,UNKNOWN,UP
+        http-mapping:
+          DOWN: 503
+          OUT_OF_SERVICE: 503
+          # Rule 9.2's reasoning applied at the infrastructure health
+          # layer: a correctly-identified degraded state is a
+          # successful response, not a failure — 200, not 503.
+          DEGRADED: 200
+          UNKNOWN: 200
+          UP: 200
+  health:
+    rabbit:
+      # Disables Spring Boot's own auto-configured RabbitMQ indicator
+      # so it does not compete with the custom one in AppConfig (both
+      # would otherwise register under the same "rabbit" name).
+      enabled: false
