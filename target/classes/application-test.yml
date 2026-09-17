@@ -1,4 +1,0 @@
-spring:
-  flyway:
-    placeholders:
-      trustguardAuthResolverPassword: test-only-not-for-production
