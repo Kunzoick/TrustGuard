@@ -20,6 +20,8 @@ public enum ErrorCode {
     ADMIN_AUTHENTICATION_FAILED("Admin login credentials are invalid"),
     ADMIN_ACCOUNT_LOCKED("Admin account is locked due to repeated failed login attempts"),
     ADMIN_SESSION_EXPIRED("Admin JWT has expired or token_version no longer matches"),
+    TENANT_CONTEXT_MISSING("No tenant context is available for this operation. This request has not been authenticated"),
+    TRANSACTION_REQUIRED("A database transaction is required for this operation but none is active."),
 
     // ==================== Validation ====================
     VALIDATION_FAILED("One or more request fields failed validation"),
