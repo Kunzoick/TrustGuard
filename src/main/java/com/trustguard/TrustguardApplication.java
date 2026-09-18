@@ -1,6 +1,5 @@
 package com.trustguard;
 
-import org.flywaydb.core.Flyway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -9,8 +8,6 @@ import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEven
 import org.springframework.context.ApplicationListener;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Profiles;
-
-import javax.sql.DataSource;
 
 @SpringBootApplication
 public class TrustguardApplication {
@@ -82,9 +79,11 @@ public class TrustguardApplication {
 			}
 
 			throw new IllegalStateException(
-					"Refusing to start: the production profile is active and server.ssl.enabled "
-							+ "is not true. Set " + TLS_OVERRIDE_ENV_VAR + "=true to override "
-							+ "(Rule 2.10) — not recommended for real production traffic.");
+					"Refusing to start: the production profile is active and "
+							+ "server.ssl.enabled is not true. Set "
+							+ TLS_OVERRIDE_ENV_VAR
+							+ "=true to override (Rule 2.10) — not recommended "
+							+ "for real production traffic.");
 		}
 	}
 }

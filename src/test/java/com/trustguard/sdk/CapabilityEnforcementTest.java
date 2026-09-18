@@ -95,7 +95,7 @@ class CapabilityEnforcementTest {
                 new TenantId(UUID.randomUUID().toString()),
                 new ProjectId(UUID.randomUUID().toString()),
                 "a".repeat(32),
-                Environment.DEVELOPMENT,
+                Environment.PRODUCTION,
                 capabilities,
                 1)));
     }

@@ -1,21 +1,28 @@
 package com.trustguard.sdk.service;
-import tools.jackson.databind.ObjectMapper;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Service;
+
 import com.trustguard.shared.domain.ProjectId;
 import com.trustguard.shared.domain.TenantId;
 import com.trustguard.shared.enums.Capability;
 import com.trustguard.shared.enums.Environment;
 import com.trustguard.tenant.context.TenantContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataAccessException;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.stereotype.Service;
-import java.time.Duration;
-import java.util.*;
-import java.util.stream.Collectors;
+
+import tools.jackson.databind.ObjectMapper;
 /**
  * Rule 5.7 step 6 — resolves TenantContext from an opaque keyId.
  * Redis key format is apikey:{keyId} — no tenant prefix, per
@@ -106,7 +113,7 @@ public class KeyLookupService {
             redisTemplate.opsForValue().set(CACHE_KEY_PREFIX + keyId, json, CACHE_TTL);
         }catch(Exception e){
             //cache write failure  must never fail the request- the lookup already succeeded from the db.
-            //mext request simply misses cache again and re-reads postgres
+            //next request simply misses cache again and re-reads postgres
         }
     }
     private static TenantContext toTenantContext(ApiKeyLookupRow row){

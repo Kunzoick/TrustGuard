@@ -1,5 +1,4 @@
 package com.trustguard.sdk.filter;
-import tools.jackson.databind.ObjectMapper;
 import com.trustguard.sdk.exception.ApiKeyAuthenticationException;
 import com.trustguard.sdk.service.KeyHashVerificationService;
 import com.trustguard.sdk.service.KeyLookupService;
@@ -19,6 +18,7 @@ import org.slf4j.MDC;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.List;
@@ -102,7 +102,8 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             try {
                 TenantContextHolder.set(context);
                 MDC.put("tenantId", context.tenantId().value());
-                SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(context.tenantId()
+                SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken
+                        (context.tenantId()
                         .value(), null, List.of()));
                 chain.doFilter(request, response);
             } finally {
@@ -185,11 +186,12 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             return new TenantContext(original.tenantId(), original.projectId(), keyId, original.environment(),
                     original.capabilities(), original.configVersion());
         }
-        private void writeErrorResponse(HttpServletResponse response, ApiKeyAuthenticationException e) throws IOException{
+        private void writeErrorResponse(HttpServletResponse response, ApiKeyAuthenticationException e)
+                throws IOException{
             response.setStatus(e.httpStatus());
             response.setContentType("application/json;charset=UTF-8");
-            Map<String, Object> body= Map.of("error", Map.of("code", e.code().name(), "message", e.getMessage(),
-                    "retryable", false));
+            Map<String, Object> body= Map.of("error", Map.of("code", e.code().name(), "message",
+                    e.getMessage(), "retryable", false));
             response.getWriter().write(objectMapper.writeValueAsString(body));
         }
         private record ParsedKey(String environment, String keyId, String providedHmac){}

@@ -3,6 +3,9 @@ package com.trustguard.architecture;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.base.DescribedPredicate.not;
 
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
@@ -37,25 +40,29 @@ class ModuleDependencyTest {
             .because("Rule 2.2: shared -> nothing internal");
 
     @ArchTest
-    static final ArchRule infrastructure_depends_on_nothing_internal = noClasses()
-            .that().resideInAPackage("com.trustguard.infrastructure..")
-            .should().dependOnClassesThat(resideInAPackage("com.trustguard..")
-                    .and(com.tngtech.archunit.base.DescribedPredicate
-                            .not(resideInAPackage("com.trustguard.infrastructure.."))
-                            .and(com.tngtech.archunit.base.DescribedPredicate
-                                    .not(resideInAPackage("com.trustguard.shared..")))
-                            .and(com.tngtech.archunit.base.DescribedPredicate
-                                    .not(resideInAPackage("com.trustguard.tenant..")))))
-            .because("Rule 2.2: infrastructure -> shared, tenant only. "
-                    + "Infrastructure reads TenantContext for RLS enforcement.");
+    static final ArchRule infrastructure_depends_on_nothing_internal =
+            noClasses().that().resideInAPackage("com.trustguard.infrastructure..")
+                    .should().dependOnClassesThat(
+                            resideInAPackage("com.trustguard..")
+                                    .and(not(resideInAPackage("com.trustguard.infrastructure..")))
+                                    .and(not(resideInAPackage("com.trustguard.shared..")))
+                                    .and(not(resideInAPackage("com.trustguard.tenant..")))
+                                    .and(not(resideInAPackage("com.trustguard.sdk.."))))
+                    .because("Rule 2.2: infrastructure -> shared, tenant, sdk only. "
+                            + "TenantRlsAspect reads TenantContext (Ruling 11, B-005). "
+                            + "SecurityConfig wires ApiKeyAuthFilter from sdk "
+                            + "(Ruling 16, B-006).");
 
     @ArchTest
-    static final ArchRule sdk_depends_on_nothing_internal = noClasses()
-            .that().resideInAPackage("com.trustguard.sdk..")
-            .should().dependOnClassesThat(resideInAPackage("com.trustguard..")
-                    .and(com.tngtech.archunit.base.DescribedPredicate.not(resideInAPackage("com.trustguard.sdk.."))))
-            .because("Rule 2.2: sdk -> nothing internal. VACUOUS until B-006 creates the sdk module.")
-            .allowEmptyShould(true);
+    static final ArchRule sdk_depends_on_nothing_internal =
+            noClasses().that().resideInAPackage("com.trustguard.sdk..")
+                    .should().dependOnClassesThat(
+                            resideInAPackage("com.trustguard..")
+                                    .and(not(resideInAPackage("com.trustguard.sdk..")))
+                                    .and(not(resideInAPackage("com.trustguard.tenant..")))
+                                    .and(not(resideInAPackage("com.trustguard.shared.."))))
+                    .because("Rule 2.2 + Ruling 15 (B-006): sdk -> tenant, shared only. "
+                            + "ApiKeyAuthFilter sets/clears TenantContext.");
 
     @ArchTest
     static final ArchRule tenant_depends_on_nothing_internal = noClasses()

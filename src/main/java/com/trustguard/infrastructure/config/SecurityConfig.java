@@ -6,11 +6,8 @@ import com.trustguard.sdk.filter.SecurityEventLogger;
 import com.trustguard.sdk.service.KeyHashVerificationService;
 import com.trustguard.sdk.service.KeyLookupService;
 import com.trustguard.sdk.service.KeyRevocationService;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -54,7 +51,7 @@ public class SecurityConfig {
      * Registered directly at HIGHEST_PRECEDENCE + 1, ahead of spring security's own filter chain internals including
      * UsernamePasswordAuthenticationFilter. this is a FilterRegistrationBean at the servlet container level, not a spring filter added
      * via HttpSecurity.addFilterBefore.
-     */
+
     @Bean
     public FilterRegistrationBean<ApiKeyAuthFilter> apiKeyAuthFilterRegistration(
             KeyHashVerificationService hashVerificationService,
@@ -68,4 +65,5 @@ public class SecurityConfig {
         registration.addUrlPatterns("/api/v1/*\", \"/api/admin/*");
         return registration;
     }
+    */
 }

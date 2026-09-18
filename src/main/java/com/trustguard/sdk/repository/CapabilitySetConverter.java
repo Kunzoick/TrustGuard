@@ -2,8 +2,7 @@ package com.trustguard.sdk.repository;
 import com.trustguard.shared.enums.Capability;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
-import java.sql.Array;
-import java.sql.SQLException;
+
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
