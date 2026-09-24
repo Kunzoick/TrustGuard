@@ -16,11 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
-import com.trustguard.shared.domain.ProjectId;
-import com.trustguard.shared.domain.TenantId;
 import com.trustguard.shared.enums.Capability;
-import com.trustguard.shared.enums.Environment;
-import com.trustguard.tenant.context.TenantContext;
 
 import tools.jackson.databind.ObjectMapper;
 /**
@@ -62,16 +58,16 @@ public class KeyLookupService {
      * Returns empty if the key is not found. Does not distinguish "not found" from "found but tenant inactive:
      * TenantContext carries everything the caller needs to make that judgment itself if a future batch requires it.
      */
-    public Optional<TenantContext> resolve(String keyId) {
-        Optional<TenantContext> cached = readFromCache(keyId);
+    public Optional<ResolvedKeyData> resolve(String keyId) {
+        Optional<ResolvedKeyData> cached = readFromCache(keyId);
         if (cached.isPresent()) {
             return cached;
         }
         Optional<ApiKeyLookupRow> row =  readFromDatabase(keyId);
         row.ifPresent(r -> writeToCache(keyId, r));
-        return row.map(KeyLookupService::toTenantContext);
+        return row.map(r -> toResolvedKeyData(r, keyId));
     }
-    private Optional<TenantContext> readFromCache(String keyId){
+    private Optional<ResolvedKeyData> readFromCache(String keyId){
         String cacheKey= CACHE_KEY_PREFIX + keyId;
         String json;
         try{
@@ -86,7 +82,8 @@ public class KeyLookupService {
         }
         try{
             CachedApiKey cached= objectMapper.readValue(json, CachedApiKey.class);
-            return Optional.of(toTenantContext(cached));
+            return Optional.of(new ResolvedKeyData(keyId, UUID.fromString(cached.tenantId()),
+                    UUID.fromString(cached.projectId()), cached.environment(), cached.capabilities()));
         }catch(Exception e){
             //malformed cache entry- treat as a miss rather than failing the request. falls through to the database
             return Optional.empty();
@@ -116,17 +113,12 @@ public class KeyLookupService {
             //next request simply misses cache again and re-reads postgres
         }
     }
-    private static TenantContext toTenantContext(ApiKeyLookupRow row){
-        return new TenantContext(new TenantId(row.tenantId().toString()), new ProjectId(row.projectId().toString()),
-                row.keyId(), Environment.valueOf(row.environment()), Arrays.stream(row.capabilities()).map(
-                        Capability::valueOf).collect(Collectors.toUnmodifiableSet()),
-                //configversion is a static placeholder
-                1);
+    private static ResolvedKeyData toResolvedKeyData(ApiKeyLookupRow row, String keyId){
+        return new ResolvedKeyData(keyId, row.tenantId(), row.projectId(),
+                row.environment(), Arrays.stream(row.capabilities()).map(
+                Capability::valueOf).collect(Collectors.toUnmodifiableSet()));
     }
-    private static TenantContext toTenantContext(CachedApiKey cached){
-        return new TenantContext(new TenantId(cached.tenantId()), new ProjectId(cached.projectId()), null,
-                Environment.valueOf(cached.environment()), cached.capabilities(), 1);
-    }
+    
     private record ApiKeyLookupRow(String keyId, UUID tenantId, UUID projectId, String environment, String[] capabilities){}
     private record CachedApiKey(String tenantId, String projectId, String environment, Set<Capability> capabilities){}
 }

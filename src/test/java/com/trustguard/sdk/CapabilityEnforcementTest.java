@@ -1,16 +1,13 @@
 package com.trustguard.sdk;
 
+import com.trustguard.sdk.service.ResolvedKeyData;
 import tools.jackson.databind.ObjectMapper;
 import com.trustguard.sdk.filter.ApiKeyAuthFilter;
 import com.trustguard.sdk.filter.SecurityEventLogger;
 import com.trustguard.sdk.service.KeyHashVerificationService;
 import com.trustguard.sdk.service.KeyLookupService;
 import com.trustguard.sdk.service.KeyRevocationService;
-import com.trustguard.shared.domain.ProjectId;
-import com.trustguard.shared.domain.TenantId;
 import com.trustguard.shared.enums.Capability;
-import com.trustguard.shared.enums.Environment;
-import com.trustguard.tenant.context.TenantContext;
 import com.trustguard.tenant.context.TenantContextHolder;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.AfterEach;
@@ -91,12 +88,12 @@ class CapabilityEnforcementTest {
     private void mockResolution(Set<Capability> capabilities) {
         when(hashService.verify(anyString(), anyString())).thenReturn(true);
         when(revocationService.isRevoked(anyString())).thenReturn(false);
-        when(lookupService.resolve(anyString())).thenReturn(Optional.of(new TenantContext(
-                new TenantId(UUID.randomUUID().toString()),
-                new ProjectId(UUID.randomUUID().toString()),
-                "a".repeat(32),
-                Environment.PRODUCTION,
-                capabilities,
-                1)));
+        when(lookupService.resolve(anyString())).thenReturn(
+                Optional.of(new ResolvedKeyData(
+                        "a".repeat(32),
+                        UUID.randomUUID(),
+                        UUID.randomUUID(),
+                        "PRODUCTION",
+                        capabilities)));
     }
 }

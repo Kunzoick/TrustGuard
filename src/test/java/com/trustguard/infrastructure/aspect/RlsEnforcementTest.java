@@ -12,7 +12,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.stereotype.Service;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +30,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Testcontainers
+@ActiveProfiles("test")
+@Import(RlsEnforcementTest.ProbeService.class)
 class RlsEnforcementTest {
 
     @Container
@@ -35,20 +39,32 @@ class RlsEnforcementTest {
             new PostgreSQLContainer<>("postgres:16")
                     .withDatabaseName("trustguard_test")
                     .withUsername("trustguard")
-                    .withPassword("trustguard");
+                    .withPassword("trustguard_test");
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
+        registry.add("spring.datasource.username", POSTGRES::getUsername);
+        registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("spring.flyway.url", POSTGRES::getJdbcUrl);
         registry.add("spring.flyway.user", POSTGRES::getUsername);
         registry.add("spring.flyway.password", POSTGRES::getPassword);
         registry.add("spring.flyway.placeholders.trustguardAppPassword",
                 () -> "test-only-not-for-production");
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-        registry.add("spring.data.redis.host", () -> "localhost");
-        registry.add("spring.rabbitmq.host", () -> "localhost");
+        registry.add("spring.flyway.placeholders.trustguardAuthResolverPassword",
+                () -> "test-only-not-for-production");
+        registry.add("trustguard.auth-resolver.datasource.jdbc-url",
+                POSTGRES::getJdbcUrl);
+        registry.add("trustguard.auth-resolver.datasource.username",
+                POSTGRES::getUsername);
+        registry.add("trustguard.auth-resolver.datasource.password",
+                POSTGRES::getPassword);
+        registry.add("trustguard.security.hmac-signing-key",
+                () -> "test-only-insecure-key");
+        registry.add("spring.data.redis.host", () -> "127.0.0.1");
+        registry.add("spring.data.redis.port", () -> "1");
+        registry.add("spring.data.redis.connect-timeout", () -> "500ms");
+        registry.add("spring.data.redis.timeout", () -> "500ms");
     }
 
     @Autowired
@@ -69,10 +85,11 @@ class RlsEnforcementTest {
 
     @Test
     void set_config_fires_correctly_when_context_present() {
-        TenantContextHolder.set(sampleContext());
+        TenantContext ctx= sampleContext();
+        TenantContextHolder.set(ctx);
         String tenantIdSeenByDb = probeService.readCurrentTenantSetting();
-        assertThat(tenantIdSeenByDb).isEqualTo(
-                sampleContext().tenantId().value());
+        assertThat(tenantIdSeenByDb).isEqualTo(ctx.tenantId().value());
+
     }
 
     @Test

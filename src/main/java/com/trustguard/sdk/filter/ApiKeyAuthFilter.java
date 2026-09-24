@@ -3,6 +3,9 @@ import com.trustguard.sdk.exception.ApiKeyAuthenticationException;
 import com.trustguard.sdk.service.KeyHashVerificationService;
 import com.trustguard.sdk.service.KeyLookupService;
 import com.trustguard.sdk.service.KeyRevocationService;
+import com.trustguard.sdk.service.ResolvedKeyData;
+import com.trustguard.shared.domain.ProjectId;
+import com.trustguard.shared.domain.TenantId;
 import com.trustguard.shared.enums.Capability;
 import com.trustguard.shared.enums.Environment;
 import com.trustguard.shared.enums.ErrorCode;
@@ -84,13 +87,16 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
                 throw new ApiKeyAuthenticationException(ErrorCode.KEY_REVOKED, 401, "API key has been revoked");
             }
             //Step 6- Resolve TenantContext
-            Optional<TenantContext> resolved = lookupService.resolve(parsedKey.keyId());
+            Optional<ResolvedKeyData> resolved = lookupService.resolve(parsedKey.keyId());
             if (resolved.isEmpty()) {
                 throw new ApiKeyAuthenticationException(ErrorCode.INVALID_API_KEY, 401, "API key not found.");
             }
             //Reconstruct with the correct keyId- see KeylookupService
             //flag: the redis-cache-hit path cannot populate this field itself since the cache value schema omits keyId.
-            TenantContext context = withKeyId(resolved.get(), parsedKey.keyId());
+            ResolvedKeyData keyData = resolved.get();
+            TenantContext context = new TenantContext(new TenantId(keyData.tenantId().toString()),
+                    new ProjectId(keyData.projectId().toString()), parsedKey.keyId(),
+                    Environment.valueOf(keyData.environment()), keyData.capabilities(), 1);
 
             //step 7- verify capability for this endpoint
             requireCapability(request, context);

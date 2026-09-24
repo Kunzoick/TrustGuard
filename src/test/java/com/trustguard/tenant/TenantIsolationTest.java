@@ -54,6 +54,20 @@ public class TenantIsolationTest {
         registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("spring.data.redis.host", () -> "localhost");
         registry.add("spring.rabbitmq.host", () -> "localhost");
+        registry.add("spring.flyway.placeholders.trustguardAuthResolverPassword",
+                () -> "test-only-not-for-production");
+        registry.add("trustguard.auth-resolver.datasource.jdbc-url",
+                POSTGRES::getJdbcUrl);
+        registry.add("trustguard.auth-resolver.datasource.username",
+                POSTGRES::getUsername);
+        registry.add("trustguard.auth-resolver.datasource.password",
+                POSTGRES::getPassword);
+        registry.add("trustguard.security.hmac-signing-key",
+                () -> "test-only-insecure-key");
+        registry.add("spring.data.redis.host", () -> "127.0.0.1");
+        registry.add("spring.data.redis.port", () -> "1");
+        registry.add("spring.data.redis.connect-timeout", () -> "500ms");
+        registry.add("spring.data.redis.timeout", () -> "500ms");
     }
 
     @Autowired
