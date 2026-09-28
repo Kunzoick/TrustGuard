@@ -1,24 +1,25 @@
 package com.trustguard.sdk.repository;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import com.trustguard.shared.enums.Capability;
 import com.trustguard.shared.enums.Environment;
-import jakarta.persistence.Column;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
-import java.util.Arrays;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
- * maps api_keys. No key_hash filed- the HMAC is recomputed from the raw key's keyId at verification time, never read back from storage.
+ * maps api_keys. No key_hash field - the HMAC is recomputed from the raw key's keyId at verification time, never read back from storage.
  */
 @Entity
 @Table(name = "api_keys")

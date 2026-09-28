@@ -1,8 +1,11 @@
 package com.trustguard.sdk.filter;
-import jakarta.servlet.http.HttpServletRequest;
+import java.util.UUID;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
-import java.util.UUID;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 /*
 writes to the security_events table, for auth-path events that c=occur before TenantContext exists.
 Uses the main trustguard_app connection pool, DataSource- securiy is not RLS-scoped, so no bypass role needed here.

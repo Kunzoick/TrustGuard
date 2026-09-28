@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import com.trustguard.shared.enums.Capability;
 
 import tools.jackson.databind.ObjectMapper;
+
 /**
  * Rule 5.7 step 6 — resolves TenantContext from an opaque keyId.
  * Redis key format is apikey:{keyId} — no tenant prefix, per
@@ -38,7 +39,8 @@ public class KeyLookupService {
     private static final Logger log= LoggerFactory.getLogger(KeyLookupService.class);
 
     private static final RowMapper<ApiKeyLookupRow> ROW_MAPPER = (rs, rowNum) -> new ApiKeyLookupRow(
-            rs.getString("key_id"), UUID.fromString(rs.getString("tenant_id")), UUID.fromString(rs.getString("project_id")),
+            rs.getString("key_id"), UUID.fromString(rs.getString("tenant_id")),
+            UUID.fromString(rs.getString("project_id")),
             rs.getString("environment"), rs.getString("capabilities") == null ? new String[0] :
             (String[]) rs.getArray("capabilities").getArray());
     private final StringRedisTemplate redisTemplate;
@@ -63,7 +65,7 @@ public class KeyLookupService {
         if (cached.isPresent()) {
             return cached;
         }
-        Optional<ApiKeyLookupRow> row =  readFromDatabase(keyId);
+        Optional<ApiKeyLookupRow> row = readFromDatabase(keyId);
         row.ifPresent(r -> writeToCache(keyId, r));
         return row.map(r -> toResolvedKeyData(r, keyId));
     }
@@ -119,6 +121,7 @@ public class KeyLookupService {
                 Capability::valueOf).collect(Collectors.toUnmodifiableSet()));
     }
     
-    private record ApiKeyLookupRow(String keyId, UUID tenantId, UUID projectId, String environment, String[] capabilities){}
+    private record ApiKeyLookupRow(String keyId, UUID tenantId, UUID projectId, String environment,
+                                   String[] capabilities){}
     private record CachedApiKey(String tenantId, String projectId, String environment, Set<Capability> capabilities){}
 }

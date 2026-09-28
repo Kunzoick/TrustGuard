@@ -1,9 +1,9 @@
 package com.trustguard.sdk.service;
 
-import com.trustguard.shared.enums.Capability;
-
 import java.util.Set;
 import java.util.UUID;
+
+import com.trustguard.shared.enums.Capability;
 
 /**
  * Data carrier returned by KeyLookupService.resolve().

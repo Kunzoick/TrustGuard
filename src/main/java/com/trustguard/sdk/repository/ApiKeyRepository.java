@@ -1,7 +1,8 @@
 package com.trustguard.sdk.repository;
-import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 import java.util.UUID;
+
+import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
  * RLS-protected- runs on the main trustguard_app connection pool

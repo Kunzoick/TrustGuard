@@ -1,13 +1,15 @@
 package com.trustguard.sdk.service;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 /**
  * it recomputes the HMAC from keyId and compares it constant-time against the provided hash
@@ -41,7 +43,8 @@ public class KeyHashVerificationService {
             return HexFormat.of().formatHex(expectedBytes);
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             //HmacSHA256 is a JDK-guaranteed algorithm and the key spec is always valid non-null bytes
-            //so this branch is never reached in pratice. Fail loudly rather than returning sentinel that could be compared as if it were a real HMAC
+            //so this branch is never reached in pratice. Fail loudly rather than returning sentinel that could
+            // be compared as if it were a real HMAC
             throw new IllegalStateException("HMAC computation failed unexpectedly", e);
         }
     }

@@ -1,9 +1,10 @@
 package com.trustguard.tenant.context;
+import java.util.Set;
+
 import com.trustguard.shared.domain.ProjectId;
 import com.trustguard.shared.domain.TenantId;
 import com.trustguard.shared.enums.Capability;
 import com.trustguard.shared.enums.Environment;
-import java.util.Set;
 
 /**
  * Rule 4.1 Layer 1 — resolved exclusively from authenticated

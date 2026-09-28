@@ -1,15 +1,18 @@
 package com.trustguard.infrastructure.aspect;
-import com.trustguard.shared.error.TenantContextMissingException;
-import com.trustguard.shared.error.TransactionRequiredException;
-import com.trustguard.tenant.context.TenantContext;
-import com.trustguard.tenant.context.TenantContextHolder;
-import jakarta.persistence.EntityManager;
+
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import com.trustguard.shared.error.TenantContextMissingException;
+import com.trustguard.shared.error.TransactionRequiredException;
+import com.trustguard.tenant.context.TenantContext;
+import com.trustguard.tenant.context.TenantContextHolder;
+
+import jakarta.persistence.EntityManager;
 
 /**
  * Rule 4.1 Layer 4 — fires set_config('app.tenant_id', value, true)
@@ -44,7 +47,8 @@ public class TenantRlsAspect {
         }
         if(!TransactionSynchronizationManager.isActualTransactionActive()){
             throw new TransactionRequiredException("TenantRlsAspect fired with no active transaction. This means "
-            + "@Transactional is missing on the calling method, or the aspect ordering is broken. Method: "+ joinPoint.getSignature().toShortString());
+            + "@Transactional is missing on the calling method, or the aspect ordering is broken. Method: "+
+                    joinPoint.getSignature().toShortString());
         }
         entityManager.createNativeQuery("SELECT set_config('app.tenant_id', :tenantId, true)")
                 .setParameter("tenantId", context.tenantId().value()).getSingleResult();

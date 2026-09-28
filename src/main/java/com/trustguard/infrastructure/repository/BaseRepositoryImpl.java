@@ -1,12 +1,14 @@
 package com.trustguard.infrastructure.repository;
-import com.trustguard.shared.error.TenantContextMissingException;
-import com.trustguard.tenant.context.TenantContext;
-import com.trustguard.tenant.context.TenantContextHolder;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.TypedQuery;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import com.trustguard.shared.error.TenantContextMissingException;
+import com.trustguard.tenant.context.TenantContext;
+import com.trustguard.tenant.context.TenantContextHolder;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 
 public class BaseRepositoryImpl<T> implements BaseRepository<T> {
     private final EntityManager entityManager;
@@ -46,7 +48,8 @@ public class BaseRepositoryImpl<T> implements BaseRepository<T> {
     public T save(T entity){
         //Deliberately does not cross-check entity's own tenantId against TenantContextHolder before merging.
         //Layerr 4 rls(USING clause applies to INSERT/UPDATE by default when no separate WITH CHECK is defined)
-        //rejects any row whose tenant_id does not match the active SET LOCAL value, so a mismatched write fails loudly at the DB rather than silenty
+        //rejects any row whose tenant_id does not match the active SET LOCAL value, so a mismatched write fails
+        // loudly at the DB rather than silenty
         //at this layer. Two ayer defence, not redundant code.
         requireTenantId();
         return entityManager.merge(entity);
@@ -55,7 +58,8 @@ public class BaseRepositoryImpl<T> implements BaseRepository<T> {
     private UUID requireTenantId(){
         TenantContext context= TenantContextHolder.get();
         if(context== null){
-            throw new TenantContextMissingException("TenantContext is not set. BaseRepositoryImpl cannot scope quries without an authenticated tenant context.");
+            throw new TenantContextMissingException("TenantContext is not set. BaseRepositoryImpl cannot scope quries" +
+                    " without an authenticated tenant context.");
         }
         return UUID.fromString(context.tenantId().value());
     }

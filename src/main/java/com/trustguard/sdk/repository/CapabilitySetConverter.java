@@ -1,11 +1,12 @@
 package com.trustguard.sdk.repository;
-import com.trustguard.shared.enums.Capability;
-import jakarta.persistence.AttributeConverter;
-import jakarta.persistence.Converter;
-
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import com.trustguard.shared.enums.Capability;
+
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
 
 /**
  * it maps the capabilities TEXT[] column to a Set<Capability>, using the AttributeConverter approach

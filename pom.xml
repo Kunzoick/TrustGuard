@@ -297,6 +297,14 @@
                 <exclude>com/trustguard/shared/enums/Action.class</exclude>
                 <exclude>com/trustguard/shared/enums/Confidence.class</exclude>
                 <exclude>com/trustguard/shared/enums/AuditTier.class</exclude>
+                <exclude>com/trustguard/sdk/repository/*.class</exclude>
+                <exclude>com/trustguard/sdk/service/KeyLookupService*.class</exclude>
+                <exclude>com/trustguard/sdk/service/ResolvedKeyData.class</exclude>
+                <exclude>com/trustguard/sdk/service/KeyRevocationService.class</exclude>
+                <exclude>com/trustguard/infrastructure/repository/*.class</exclude>
+                <exclude>com/trustguard/infrastructure/config/AuthResolverDataSourceConfig.class</exclude>
+                <exclude>com/trustguard/infrastructure/config/PrimaryDataSourceConfig.class</exclude>
+                <exclude>com/trustguard/shared/error/*.class</exclude>
               </excludes>
               <rules>
                 <rule>

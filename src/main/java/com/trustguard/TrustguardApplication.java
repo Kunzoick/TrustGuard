@@ -72,8 +72,10 @@ public class TrustguardApplication {
 			boolean overrideSet = "true".equalsIgnoreCase(environment.getProperty(TLS_OVERRIDE_ENV_VAR));
 
 			if (overrideSet) {
-				log.error("SECURITY VIOLATION: TrustGuard is running in PRODUCTION without TLS. "
-						+ "API keys, behavioral data, and trust decisions are exposed in transit. "
+				log.error("SECURITY VIOLATION: TrustGuard is running in " +
+						"PRODUCTION without TLS. "
+						+ "API keys, behavioral data, and trust decisions " +
+						"are exposed in transit. "
 						+ "This configuration is not supported for production use.");
 				return;
 			}

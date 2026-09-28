@@ -1,4 +1,17 @@
 package com.trustguard.sdk.filter;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Pattern;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.filter.OncePerRequestFilter;
+
 import com.trustguard.sdk.exception.ApiKeyAuthenticationException;
 import com.trustguard.sdk.service.KeyHashVerificationService;
 import com.trustguard.sdk.service.KeyLookupService;
@@ -11,23 +24,12 @@ import com.trustguard.shared.enums.Environment;
 import com.trustguard.shared.enums.ErrorCode;
 import com.trustguard.tenant.context.TenantContext;
 import com.trustguard.tenant.context.TenantContextHolder;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.filter.OncePerRequestFilter;
 import tools.jackson.databind.ObjectMapper;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.regex.Pattern;
 
 /**
  * rule 5.7- implements the invariant authorization check order exactly. Each step either proceeds or throws
@@ -122,8 +124,10 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         }
     }
     /*
-    CF-007- audit logging is best effort and must never alter the authentication decision. if the security_events write fails
-    the request is still rejected with 403; inly the audit trail write itself is lost, and that failure is logged at ERROR
+    CF-007- audit logging is best effort and must never alter the authentication decision.
+    if the security_events write fails
+    the request is still rejected with 403; inly the audit trail write itself is lost,
+    and that failure is logged at ERROR
     so it's visible in operational logs even though it cant block the response
      */
     private void throwBrowserOriginRejected(HttpServletRequest request){
@@ -146,7 +150,8 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         String providedHmac= segments[3];
         if(!KEY_ID_PATTERN.matcher(keyId).matches()){
             throw new ApiKeyAuthenticationException(ErrorCode.INVALID_API_KEY, 401,
-                    "API key ID must be exactly 32 lowercase hex characters.");
+                    "API key ID must be exactly 32"
+                            + " lowercase hex characters.");
         }
         if(!HMAC_PATTERN.matcher(providedHmac).matches()){
             throw new ApiKeyAuthenticationException(ErrorCode.INVALID_API_KEY, 401,
