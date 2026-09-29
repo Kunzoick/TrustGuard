@@ -17,5 +17,9 @@ public record ResolvedKeyData(
         UUID tenantId,
         UUID projectId,
         String environment,
-        Set<Capability> capabilities
-) {}
+        Set<Capability> capabilities) {
+
+    public ResolvedKeyData{
+        capabilities = Set.copyOf(capabilities);
+    }
+}

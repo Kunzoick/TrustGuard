@@ -193,10 +193,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
                     "API key environment does not match the required environment.");
         }
     }
-        private TenantContext withKeyId(TenantContext original, String keyId){
-            return new TenantContext(original.tenantId(), original.projectId(), keyId, original.environment(),
-                    original.capabilities(), original.configVersion());
-        }
+
         private void writeErrorResponse(HttpServletResponse response, ApiKeyAuthenticationException e)
                 throws IOException{
             response.setStatus(e.httpStatus());

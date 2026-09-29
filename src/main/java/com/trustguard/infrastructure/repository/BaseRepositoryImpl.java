@@ -10,7 +10,7 @@ import com.trustguard.tenant.context.TenantContextHolder;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 
-public class BaseRepositoryImpl<T> implements BaseRepository<T> {
+public final class BaseRepositoryImpl<T> implements BaseRepository<T> {
     private final EntityManager entityManager;
     private final Class<T> entityClass;
     private final String entityName;

@@ -113,6 +113,7 @@ public class KeyLookupService {
         }catch(Exception e){
             //cache write failure  must never fail the request- the lookup already succeeded from the db.
             //next request simply misses cache again and re-reads postgres
+            log.debug("Cache write failed for keyId={}, request served from DB", maskKeyId(keyId), e);
         }
     }
     private static ResolvedKeyData toResolvedKeyData(ApiKeyLookupRow row, String keyId){
