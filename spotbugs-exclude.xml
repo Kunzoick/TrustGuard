@@ -34,7 +34,26 @@
             <Class name="com.trustguard.sdk.filter.SecurityEventLogger"/>
             <Class name="com.trustguard.sdk.service.KeyLookupService"/>
             <Class name="com.trustguard.sdk.service.KeyRevocationService"/>
+            <Class name="com.trustguard.api.admin.auth.AdminJwtFilter"/>
+            <Class name="com.trustguard.api.admin.auth.AdminSecurityEventWriter"/>
         </Or>
+    </Match>
+
+    <!--
+      Reviewer: Agent 4 | Date: 2026-10-09 | Next review: 2027-01-09
+      Justification: CT_CONSTRUCTOR_THROW on AdminJwtService is the
+      intentional startup gate (Rule 5.9, RULING 2): the constructor refuses
+      to start the application when ADMIN_JWT_SECRET is missing, invalid
+      base64, or shorter than 32 bytes. The object is a Spring singleton
+      created once at startup; a failed construction aborts context startup,
+      so a partially constructed instance is never reachable. Marking the
+      class final would not change this — the finalizer-attack concern does
+      not apply to a bean whose construction failure prevents the context
+      from ever becoming available to callers.
+    -->
+    <Match>
+        <Class name="com.trustguard.api.admin.auth.AdminJwtService"/>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
     </Match>
 
 </FindBugsFilter>

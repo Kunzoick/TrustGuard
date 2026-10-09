@@ -50,6 +50,7 @@ class ApiKeyAuthIntegrationTest {
 
     private static final String HMAC_SIGNING_KEY = "integration-test-hmac-signing-key";
     private static final String APP_PASSWORD = "test-only-not-for-production";
+    private static final String ADMIN_JWT_SECRET = "dGVzdC1vbmx5LWFkbWluLWp3dC1zZWNyZXQtMzItYnl0ZXM=";
 
     @Container
     static final PostgreSQLContainer<?> POSTGRES =
@@ -85,6 +86,7 @@ class ApiKeyAuthIntegrationTest {
         registry.add("trustguard.auth-resolver.datasource.pool-name", () -> "test-auth-resolver-pool");
 
         registry.add("trustguard.security.hmac-signing-key", () -> HMAC_SIGNING_KEY);
+        registry.add("trustguard.admin.jwt-secret", () -> ADMIN_JWT_SECRET);
         registry.add("spring.jpa.properties.hibernate.dialect",
                 () -> "org.hibernate.dialect.PostgreSQLDialect");
 
