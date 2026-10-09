@@ -64,6 +64,8 @@ public class TenantIsolationTest {
                 POSTGRES::getPassword);
         registry.add("trustguard.security.hmac-signing-key",
                 () -> "test-only-insecure-key");
+        registry.add("trustguard.admin.jwt-secret",
+                () -> "dGVzdC1vbmx5LWFkbWluLWp3dC1zZWNyZXQtMzItYnl0ZXM=");
         registry.add("spring.data.redis.host", () -> "127.0.0.1");
         registry.add("spring.data.redis.port", () -> "1");
         registry.add("spring.data.redis.connect-timeout", () -> "500ms");

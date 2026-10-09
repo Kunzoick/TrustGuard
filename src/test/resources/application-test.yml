@@ -12,3 +12,5 @@ spring:
 trustguard:
   security:
     hmac-signing-key: test-only-insecure-key
+  admin:
+    jwt-secret: dGVzdC1vbmx5LWFkbWluLWp3dC1zZWNyZXQtMzItYnl0ZXM=

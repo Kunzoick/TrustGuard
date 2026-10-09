@@ -93,3 +93,7 @@ management:
       # so it does not compete with the custom one in AppConfig (both
       # would otherwise register under the same "rabbit" name).
       enabled: false
+
+trustguard:
+  admin:
+    jwt-secret: ${ADMIN_JWT_SECRET}

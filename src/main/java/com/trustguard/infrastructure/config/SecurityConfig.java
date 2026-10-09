@@ -2,6 +2,7 @@ package com.trustguard.infrastructure.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -14,61 +15,76 @@ import com.trustguard.sdk.service.KeyHashVerificationService;
 import com.trustguard.sdk.service.KeyLookupService;
 import com.trustguard.sdk.service.KeyRevocationService;
 
+import jakarta.servlet.DispatcherType;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Skeleton only, per the B-003 batch brief. Real API key authentication
- * (B-006) and admin JWT authentication (B-007) are NOT implemented here.
- * This exists solely so Docker's HEALTHCHECK and the Docker Compose
- * readiness probe (Rule 15.7) can reach /actuator/health/** without
- * Spring Security's default auto-configuration blocking every request
- * with a generated login page.
+ * Chains 2 and 3 of the three-chain layout (Rule 16.7: admin and tenant security never share code).
+ * Chain 1 (/api/admin/**) lives in AdminSecurityConfig (RULING 17).
  * <p>
- * CSRF is disabled because TrustGuard is a stateless API with no
- * browser session state — Rule 16.2 disables CORS entirely in V1, and
- * there is no cookie-based session to protect against forgery.
- * Everything other than the health endpoints requires authentication by
- * default; no other endpoints exist yet in this batch regardless.
+ * Chain 2 (order 2) authenticates /api/v1/** with the API key filter. Chain 3 (order 3, last) matches
+ * every other path, permits the container's ERROR dispatch plus exactly the liveness and readiness
+ * probes used by the Dockerfile HEALTHCHECK (RULING 20 as amended, Rule 15.5), and denies everything
+ * else, so an unmapped path can never be open.
+ * <p>
+ * CSRF is disabled because TrustGuard is a stateless API with no browser session state: Rule 16.2
+ * disables CORS entirely in V1 and there is no cookie-based session to protect against forgery.
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
+    /**
+     * Tenant chain, scoped to /api/v1/**. The API key filter is created with new here and registered
+     * only through HttpSecurity (never as a servlet filter bean).
+     *
+     * @param http                    HttpSecurity
+     * @param hashVerificationService HMAC verification
+     * @param revocationService       revocation checks
+     * @param lookupService           key lookup
+     * @param securityEventLogger     security event writer
+     * @param objectMapper            Jackson 3 mapper
+     * @return the tenant chain
+     * @throws Exception if the chain cannot be built
+     */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, KeyHashVerificationService hashVerificationService,
-                                           KeyRevocationService revocationService, KeyLookupService lookupService,
+    @Order(2)
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           KeyHashVerificationService hashVerificationService,
+                                           KeyRevocationService revocationService,
+                                           KeyLookupService lookupService,
                                            SecurityEventLogger securityEventLogger,
-            ObjectMapper objectMapper) throws Exception {
+                                           ObjectMapper objectMapper) throws Exception {
         ApiKeyAuthFilter apiKeyAuthFilter = new ApiKeyAuthFilter(hashVerificationService, revocationService,
                 lookupService, securityEventLogger, objectMapper);
         http
+                .securityMatcher("/api/v1/**")
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .authorizeHttpRequests(auth -> auth.requestMatchers(
-                        "/actuator/health/**").permitAll().requestMatchers("/api/v1/**",
-                        "/api/admin/**").authenticated().anyRequest().permitAll());
+                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated());
         return http.build();
     }
-    /**
-     * Registered directly at HIGHEST_PRECEDENCE + 1, ahead of spring security's own filter chain internals including
-     * UsernamePasswordAuthenticationFilter. this is a FilterRegistrationBean at the servlet container level,
-     * not a spring filter added
-     * via HttpSecurity.addFilterBefore.
 
-     @Bean public FilterRegistrationBean<ApiKeyAuthFilter> apiKeyAuthFilterRegistration(
-     KeyHashVerificationService hashVerificationService,
-     KeyRevocationService revocationService,
-     KeyLookupService lookupService,
-     SecurityEventLogger securityEventLogger,
-     ObjectMapper objectMapper){
-     FilterRegistrationBean<ApiKeyAuthFilter> registration= new FilterRegistrationBean<>();
-     registration.setFilter(new ApiKeyAuthFilter(hashVerificationService, revocationService,
-     lookupService, securityEventLogger, objectMapper));
-     registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 1);
-     registration.addUrlPatterns("/api/v1/*\", \"/api/admin/*");
-     return registration;
-     }
+    /**
+     * Default chain: fail-closed for every path not matched by chains 1 and 2.
+     *
+     * @param http HttpSecurity
+     * @return the default-deny chain
+     * @throws Exception if the chain cannot be built
      */
+    @Bean
+    @Order(3)
+    public SecurityFilterChain defaultDenyFilterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers("/actuator/health/liveness", "/actuator/health/readiness").permitAll()
+                        .anyRequest().denyAll());
+        return http.build();
+    }
 }
