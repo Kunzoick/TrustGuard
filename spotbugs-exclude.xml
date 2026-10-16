@@ -15,6 +15,8 @@
 
     <!--
       Reviewer: Jesse | Date: 2026-09-28 | Next review: 2026-12-28
+      Amended 2026-10-16 (B-007b): AdminSeedRunner added. Same pattern, constructor-injected JdbcTemplate.
+      Reviewer for this addition: pending Agent 4.
       Justification: EI_EXPOSE_REP2 (may expose internal representation by
       storing an externally mutable object) fires on every field that holds
       a Spring container-managed singleton bean. EntityManager, JdbcTemplate,
@@ -36,6 +38,7 @@
             <Class name="com.trustguard.sdk.service.KeyRevocationService"/>
             <Class name="com.trustguard.api.admin.auth.AdminJwtFilter"/>
             <Class name="com.trustguard.api.admin.auth.AdminSecurityEventWriter"/>
+            <Class name="com.trustguard.api.admin.auth.AdminSeedRunner"/>
         </Or>
     </Match>
 

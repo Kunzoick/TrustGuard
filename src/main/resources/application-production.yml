@@ -45,3 +45,10 @@ spring:
   flyway:
     placeholders:
       trustguardAppPassword: ${TRUSTGUARD_APP_DB_PASSWORD:}
+
+
+trustguard:
+  admin:
+    seed:
+      # Ruling 24: a production start on an empty admin_users table without seed credentials must fail.
+      required: true

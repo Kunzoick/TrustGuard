@@ -20,6 +20,7 @@ public enum ErrorCode {
     ADMIN_AUTHENTICATION_FAILED("Admin login credentials are invalid"),
     ADMIN_ACCOUNT_LOCKED("Admin account is locked due to repeated failed login attempts"),
     ADMIN_SESSION_EXPIRED("Admin JWT has expired or token_version no longer matches"),
+    ADMIN_NOT_FOUND("No admin account exists for the given adminId"),
     TENANT_CONTEXT_MISSING("No tenant context is available.Request not authenticated"),
     TRANSACTION_REQUIRED("A database transaction is required for this operation but none is active."),
 

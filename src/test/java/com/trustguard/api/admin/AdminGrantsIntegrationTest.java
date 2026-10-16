@@ -90,12 +90,29 @@ class AdminGrantsIntegrationTest {
     }
 
     @Test
-    void app_role_cannot_read_security_events_or_insert_admin_users() throws SQLException {
+    void app_role_cannot_read_security_events() throws SQLException {
         try (Connection connection = appConnection(); Statement statement = connection.createStatement()) {
             assertThrows(SQLException.class, () -> statement.executeQuery("SELECT * FROM security_events"));
-            assertThrows(SQLException.class, () -> statement.executeUpdate(
+        }
+    }
+
+    @Test
+    void app_role_can_insert_admin_users() throws SQLException {
+        try (Connection connection = appConnection(); Statement statement = connection.createStatement()) {
+            assertEquals(1, statement.executeUpdate(
                     "INSERT INTO admin_users (id, username, password_hash) VALUES ('"
-                            + UUID.randomUUID() + "', 'nope', 'hash')"));
+                            + UUID.randomUUID() + "', 'grant-insert-" + UUID.randomUUID() + "', 'hash')"));
+        }
+    }
+
+    @Test
+    void app_role_can_insert_admin_users_on_conflict_do_nothing() throws SQLException {
+        String username = "grant-conflict-" + UUID.randomUUID();
+        String insert = "INSERT INTO admin_users (id, username, password_hash) VALUES ('%s', '" + username
+                + "', 'hash') ON CONFLICT (username) DO NOTHING";
+        try (Connection connection = appConnection(); Statement statement = connection.createStatement()) {
+            assertEquals(1, statement.executeUpdate(String.format(insert, UUID.randomUUID())));
+            assertEquals(0, statement.executeUpdate(String.format(insert, UUID.randomUUID())));
         }
     }
 }
