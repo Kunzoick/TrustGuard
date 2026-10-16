@@ -97,3 +97,9 @@ management:
 trustguard:
   admin:
     jwt-secret: ${ADMIN_JWT_SECRET}
+    seed:
+      # First-admin seed (B-007b, Ruling 24). Empty means absent. No defaults, so no credentials ship in
+      # the repo. Required only while admin_users is empty, and only when required=true.
+      username: ${ADMIN_SEED_USERNAME:}
+      password: ${ADMIN_SEED_PASSWORD:}
+      required: false

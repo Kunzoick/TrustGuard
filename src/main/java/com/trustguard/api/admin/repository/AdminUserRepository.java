@@ -28,6 +28,15 @@ public interface AdminUserRepository extends JpaRepository<AdminUser, UUID> {
     Optional<AdminLoginView> findLoginViewByUsername(String username);
 
     /**
+     * Reads the login columns for an admin id without loading a managed entity (RULING 23). Used by the
+     * password change, which verifies the current password outside any transaction.
+     *
+     * @param id admin id
+     * @return the login view, if present
+     */
+    Optional<AdminLoginView> findLoginViewById(UUID id);
+
+    /**
      * Loads an admin with a pessimistic write lock (SELECT ... FOR UPDATE). Must run inside a transaction.
      *
      * @param id admin id

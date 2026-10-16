@@ -58,7 +58,24 @@ public class AdminBruteForceService {
      * @param ipAddress remote address
      * @param reason    internal reason
      */
-    public void recordFailedAttempt(UUID adminId, String username, String ipAddress, FailureReason reason) {
+    public void recordFailedAttempt(UUID adminId, String username, String ipAddress, FailureReason reason){
+       recordFailedAttempt(adminId, username, ipAddress, AdminAuthConstants.EVENT_LOGIN_FAILED,
+               Map.of(AdminAuthConstants.DETAIL_REASON, reason.name()));
+    }
+    /**
+     * Records a failed attempt against the shared lockout counter with a caller-chosen failure event
+     * (RULING 31: the password change counts toward the same 5-in-15 counter). The counter commits first
+     * (RULING 22); the events are best-effort afterwards. Never throws.
+     *
+     * @param adminId          admin id, or null when no counter applies
+     * @param actorId          username or admin id recorded on the failure event
+     * @param ipAddress        remote address
+     * @param failureEventType event type of the failure event
+     * @param failureDetails   internal details of the failure event, never secrets
+     * @return true if this failure locked the account
+     */
+    public boolean recordFailedAttempt(UUID adminId, String actorId, String ipAddress, String failureEventType,
+                                    Map<String, ?> failureDetails) {
         boolean lockedNow = false;
         if (adminId != null) {
             try {
@@ -67,12 +84,12 @@ public class AdminBruteForceService {
                 log.error("Failed to persist the failed-login counter. adminId={}", adminId, e);
             }
         }
-        eventWriter.recordBestEffort(AdminAuthConstants.EVENT_LOGIN_FAILED, username, ipAddress,
-                Map.of("reason", reason.name()));
+        eventWriter.recordBestEffort(failureEventType, actorId, ipAddress, failureDetails);
         if (lockedNow) {
             eventWriter.recordBestEffort(AdminAuthConstants.EVENT_ACCOUNT_LOCKED, adminId.toString(), ipAddress,
                     Map.of("failedAttempts", AdminAuthConstants.MAX_FAILED_ATTEMPTS));
         }
+        return lockedNow;
     }
 
     /**

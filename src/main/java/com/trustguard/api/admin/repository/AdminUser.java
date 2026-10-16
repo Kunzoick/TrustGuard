@@ -101,6 +101,37 @@ public class AdminUser {
     }
 
     /**
+     * Replaces the password hsh, invalidates every token and resets the failure counters, the caller
+     * must hold the row and must already have verified the account is not locked
+     * @param newPasswordHash new password hash
+     * @param now current instant
+     */
+    public void changePassword(String newPasswordHash, Instant now){
+        passwordHash= newPasswordHash;
+        tokenVersion++;
+        failedAttemptCount= 0;
+        failedWindowStartedAt= null;
+        updatedAt= now;
+    }
+    /*
+    manually unlocks the account. Clears the lock and the failure counters and increments the token version.
+    Does nothing when the account is locked
+    @param now current instant
+    @return true when the account was locked
+     */
+    public boolean unlock(Instant now){
+        if(lockedAt== null){
+            return false;
+        }
+        lockedAt= null;
+        failedAttemptCount= 0;
+        failedWindowStartedAt= null;
+        tokenVersion++;
+        updatedAt= now;
+        return true;
+    }
+
+    /**
      * Returns whether the account is locked until manual unlock.
      *
      * @return true when locked

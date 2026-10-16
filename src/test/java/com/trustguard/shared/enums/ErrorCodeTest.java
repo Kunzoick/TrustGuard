@@ -27,9 +27,9 @@ class ErrorCodeTest {
     }
 
     @Test
-    @DisplayName("registry contains exactly 32 codes after B-005 added TENANT_CONTEXT_MISSING and TRANSACTION_REQUIRED")
+    @DisplayName("registry contains exactly 33 codes after B-005 added TENANT_CONTEXT_MISSING and TRANSACTION_REQUIRED")
     void registryContainsExpectedCount() {
-        assertThat(ErrorCode.values()).hasSize(32);
+        assertThat(ErrorCode.values()).hasSize(33);
     }
 
     @Test
