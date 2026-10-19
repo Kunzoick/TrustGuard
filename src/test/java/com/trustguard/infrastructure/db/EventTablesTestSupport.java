@@ -135,4 +135,48 @@ public class EventTablesTestSupport {
             return result.getObject(1, LocalDate.class);
         }
     }
+    //seeds an extra project under an existing tenat as superuser. Returns the project id.
+    static UUID seedProject(UUID tenantId) throws SQLException {
+        UUID projectId = UUID.randomUUID();
+        try (Connection admin = adminConnection();
+             PreparedStatement statement = admin.prepareStatement(
+                     "INSERT INTO projects (id, tenant_id, name, environment) VALUES (?, ?, ?, 'PRODUCTION')")) {
+            statement.setObject(1, projectId);
+            statement.setObject(2, tenantId);
+            statement.setString(3, "project-" + projectId);
+            statement.executeUpdate();
+        }
+        return projectId;
+    }
+    //inserts one projects row owned by ownerTenantId on the given connection. Returns the row count
+    static int insertProjectRow(Connection connection, UUID ownerTenantId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "INSERT INTO projects (id, tenant_id, name, environment) VALUES (?, ?, ?, 'PRODUCTION')")) {
+            statement.setObject(1, UUID.randomUUID());
+            statement.setObject(2, ownerTenantId);
+            statement.setString(3, "inserted-project");
+            return statement.executeUpdate();
+        }
+    }
+    //Inserts one api_keys row owned by ownerTenantId on the given connection. Returns the row count.
+    static int insertApiKeyRow(Connection connection, Fixture owner) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "INSERT INTO api_keys (id, tenant_id, project_id, key_id, key_hash, environment) "
+                        + "VALUES (?, ?, ?, ?, 'unused-hash', 'PRODUCTION')")) {
+            statement.setObject(1, UUID.randomUUID());
+            statement.setObject(2, owner.tenantId());
+            statement.setObject(3, owner.projectId());
+            statement.setString(4, "key-" + UUID.randomUUID());
+            return statement.executeUpdate();
+        }
+    }
+    //Inserts one revoked_keys row owned by ownerTenantId on the given connection. Returns the row count.
+    static int insertRevokedKeyRow(Connection connection, UUID ownerTenantId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "INSERT INTO revoked_keys (tenant_id, key_id) VALUES (?, ?)")) {
+            statement.setObject(1, ownerTenantId);
+            statement.setString(2, "revoked-" + UUID.randomUUID());
+            return statement.executeUpdate();
+        }
+    }
 }
