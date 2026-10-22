@@ -59,4 +59,25 @@
         <Bug pattern="CT_CONSTRUCTOR_THROW"/>
     </Match>
 
+    <!--
+      Reviewer: pending Agent 4 | Date: 2026-10-22 | Next review: 2027-01-22
+      Added in B-009b. Justification: the three event DTO records hold the parsed
+      request payload as a Map. EI_EXPOSE_REP (accessor) and EI_EXPOSE_REP2
+      (constructor) report that the reference is stored and returned without a
+      copy. The records are request-scoped: Jackson builds one per request, it is
+      validated, and nothing mutates the map between validation and use (Rule 17.5
+      says records need no defensive copying). The real protection is downstream:
+      B-009c's EventEnvelope must hold a deep unmodifiable snapshot of the payload
+      (Ruling 69), so persisted and outbox data cannot change after validation.
+      Scope is only the three payload-bearing DTO classes and only these two patterns.
+    -->
+    <Match>
+        <Or>
+            <Class name="com.trustguard.signals.dto.LoginEventDto"/>
+            <Class name="com.trustguard.signals.dto.TransactionEventDto"/>
+            <Class name="com.trustguard.signals.dto.ContentSubmitEventDto"/>
+        </Or>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
 </FindBugsFilter>
