@@ -1,0 +1,45 @@
+{
+  "portabilityNote": "Integers beyond 2^53 are not portable to JavaScript. Tenants should send such identifiers as strings.",
+  "vectors": [
+    {
+      "name": "keys sorted at every level, array order kept",
+      "input": {"b": {"z": 1, "y": 2}, "a": [3, 2, 1]},
+      "expected": "{\"a\":[3,2,1],\"b\":{\"y\":2,\"z\":1}}"
+    },
+    {
+      "name": "nulls kept, no whitespace",
+      "input": {"k": null, "j": [null, true, false]},
+      "expected": "{\"j\":[null,true,false],\"k\":null}"
+    },
+    {
+      "name": "equal numbers collapse",
+      "input": [1, 1.0, 1.00, 1E0, 0.10, 1e2, -0.0],
+      "expected": "[1,1,1,1,0.1,100,0]"
+    },
+    {
+      "name": "big integer is written in full",
+      "input": [12345678901234567890],
+      "expected": "[12345678901234567890]"
+    },
+    {
+      "name": "non-ASCII is written raw",
+      "input": {"k": "caf\u00e9"},
+      "expected": "{\"k\":\"caf\u00e9\"}"
+    },
+    {
+      "name": "control characters escaped, slash raw",
+      "input": {"k": "a\tb\n/\u0001"},
+      "expected": "{\"k\":\"a\\tb\\n/\\u0001\"}"
+    },
+    {
+      "name": "empty containers",
+      "input": {"a": {}, "b": []},
+      "expected": "{\"a\":{},\"b\":[]}"
+    },
+    {
+      "name": "keys use UTF-16 code unit order, not code point order",
+      "input": {"\uffee": 2, "\ud83d\ude00": 1},
+      "expected": "{\"\ud83d\ude00\":1,\"\uffee\":2}"
+    }
+  ]
+}
