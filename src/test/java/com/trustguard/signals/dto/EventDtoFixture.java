@@ -18,17 +18,18 @@ import jakarta.validation.Validator;
 
 /**
  * Test fixture for the event DTOs (Rule 17.6): the only place that calls the 12-component
- * record constructors positionally. The validator avoids an Expression Language dependency
- * by using parameter-only message interpolation; the signals templates hold no expressions.
+ * record constructors positionally. Public since B-009c so the mapper test in another package
+ * can use it. The validator avoids an Expression Language dependency by using parameter-only
+ * message interpolation; the signals templates hold no expressions.
  */
-final class EventDtoFixture {
+public final class EventDtoFixture {
 
-    static final List<Class<? extends TrustEventDto>> TYPES =
+    public static final List<Class<? extends TrustEventDto>> TYPES =
             List.of(LoginEventDto.class, TransactionEventDto.class, ContentSubmitEventDto.class);
 
-    static final String PROJECT_ID = "123e4567-e89b-12d3-a456-426614174000";
+    public static final String PROJECT_ID = "123e4567-e89b-12d3-a456-426614174000";
 
-    static final Instant OCCURRED_AT = Instant.parse("2026-01-02T03:04:05Z");
+    public static final Instant OCCURRED_AT = Instant.parse("2026-01-02T03:04:05Z");
 
     private static final Validator VALIDATOR = Validation.byDefaultProvider().configure()
             .messageInterpolator(new ParameterMessageInterpolator())
@@ -38,22 +39,39 @@ final class EventDtoFixture {
     private EventDtoFixture() {
     }
 
-    static Builder builder() {
+    /**
+     * Starts a builder holding a valid USER event.
+     *
+     * @return a new builder
+     */
+    public static Builder builder() {
         return new Builder();
     }
 
-    static Set<ConstraintViolation<TrustEventDto>> validate(TrustEventDto dto) {
+    /**
+     * Validates a DTO with Bean Validation.
+     *
+     * @param dto the event
+     * @return the violations, empty when valid
+     */
+    public static Set<ConstraintViolation<TrustEventDto>> validate(TrustEventDto dto) {
         return VALIDATOR.validate(dto);
     }
 
-    static Set<String> paths(Set<ConstraintViolation<TrustEventDto>> violations) {
+    /**
+     * Collects the property paths of violations.
+     *
+     * @param violations the violations
+     * @return the distinct property paths
+     */
+    public static Set<String> paths(Set<ConstraintViolation<TrustEventDto>> violations) {
         return violations.stream()
                 .map(violation -> violation.getPropertyPath().toString())
                 .collect(Collectors.toSet());
     }
 
     /** Builds a valid USER event by default; each method changes one field. */
-    static final class Builder {
+    public static final class Builder {
 
         private ActorType actorType = ActorType.USER;
         private String actorId = "user-42";
@@ -68,67 +86,73 @@ final class EventDtoFixture {
         private String idempotencyKey = "idem-1";
         private String projectId = PROJECT_ID;
 
-        Builder actorType(ActorType value) {
+        public Builder actorType(ActorType value) {
             this.actorType = value;
             return this;
         }
 
-        Builder actorId(String value) {
+        public Builder actorId(String value) {
             this.actorId = value;
             return this;
         }
 
-        Builder sessionId(String value) {
+        public Builder sessionId(String value) {
             this.sessionId = value;
             return this;
         }
 
-        Builder occurredAt(Instant value) {
+        public Builder occurredAt(Instant value) {
             this.occurredAt = value;
             return this;
         }
 
-        Builder sdkVersion(String value) {
+        public Builder sdkVersion(String value) {
             this.sdkVersion = value;
             return this;
         }
 
-        Builder environment(Environment value) {
+        public Builder environment(Environment value) {
             this.environment = value;
             return this;
         }
 
-        Builder ipAddress(String value) {
+        public Builder ipAddress(String value) {
             this.ipAddress = value;
             return this;
         }
 
-        Builder userAgent(String value) {
+        public Builder userAgent(String value) {
             this.userAgent = value;
             return this;
         }
 
-        Builder deviceFingerprint(String value) {
+        public Builder deviceFingerprint(String value) {
             this.deviceFingerprint = value;
             return this;
         }
 
-        Builder payload(Map<String, Object> value) {
+        public Builder payload(Map<String, Object> value) {
             this.payload = value;
             return this;
         }
 
-        Builder idempotencyKey(String value) {
+        public Builder idempotencyKey(String value) {
             this.idempotencyKey = value;
             return this;
         }
 
-        Builder projectId(String value) {
+        public Builder projectId(String value) {
             this.projectId = value;
             return this;
         }
 
-        TrustEventDto build(Class<? extends TrustEventDto> type) {
+        /**
+         * Builds the DTO of the given record type.
+         *
+         * @param type one of {@link #TYPES}
+         * @return the event
+         */
+        public TrustEventDto build(Class<? extends TrustEventDto> type) {
             if (type == LoginEventDto.class) {
                 return new LoginEventDto(actorType, actorId, sessionId, occurredAt, sdkVersion, environment,
                         ipAddress, userAgent, deviceFingerprint, payload, idempotencyKey, projectId);
