@@ -76,6 +76,8 @@
             <Class name="com.trustguard.signals.dto.LoginEventDto"/>
             <Class name="com.trustguard.signals.dto.TransactionEventDto"/>
             <Class name="com.trustguard.signals.dto.ContentSubmitEventDto"/>
+            <Class name="com.trustguard.signals.domain.EventEnvelope"/>
+            <Class name="com.trustguard.signals.domain.EventEnvelope$EventEnvelopeBuilder"/>
         </Or>
         <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
     </Match>
