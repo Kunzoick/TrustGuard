@@ -1,5 +1,5 @@
 package com.trustguard.infrastructure.config;
-
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -9,6 +9,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.trustguard.infrastructure.filter.RequestLimitFilter;
 import com.trustguard.sdk.filter.ApiKeyAuthFilter;
 import com.trustguard.sdk.filter.SecurityEventLogger;
 import com.trustguard.sdk.service.KeyHashVerificationService;
@@ -32,11 +33,13 @@ import tools.jackson.databind.ObjectMapper;
  */
 @Configuration
 @EnableWebSecurity
+@EnableConfigurationProperties(RequestLimitProperties.class)
 public class SecurityConfig {
 
+
     /**
-     * Tenant chain, scoped to /api/v1/**. The API key filter is created with new here and registered
-     * only through HttpSecurity (never as a servlet filter bean).
+     * Tenant chain, scoped to /api/v1/**. The API key filter and the request limit filter are created
+     * with new here and registered only through HttpSecurity (never as servlet filter beans).
      *
      * @param http                    HttpSecurity
      * @param hashVerificationService HMAC verification
@@ -44,6 +47,7 @@ public class SecurityConfig {
      * @param lookupService           key lookup
      * @param securityEventLogger     security event writer
      * @param objectMapper            Jackson 3 mapper
+     * @param requestLimits           Content-Type and body-size limits (Rule 16.3)
      * @return the tenant chain
      * @throws Exception if the chain cannot be built
      */
@@ -54,15 +58,19 @@ public class SecurityConfig {
                                            KeyRevocationService revocationService,
                                            KeyLookupService lookupService,
                                            SecurityEventLogger securityEventLogger,
-                                           ObjectMapper objectMapper) throws Exception {
+                                           ObjectMapper objectMapper, RequestLimitProperties requestLimits)
+            throws Exception {
         ApiKeyAuthFilter apiKeyAuthFilter = new ApiKeyAuthFilter(hashVerificationService, revocationService,
                 lookupService, securityEventLogger, objectMapper);
+        RequestLimitFilter requestLimitFilter = new RequestLimitFilter(requestLimits.signalsBytes(),
+                requestLimits.defaultBytes());
         http
                 .securityMatcher("/api/v1/**")
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(requestLimitFilter, ApiKeyAuthFilter.class)
                 .authorizeHttpRequests(auth -> auth.anyRequest().authenticated());
         return http.build();
     }

@@ -28,6 +28,7 @@ public enum ErrorCode {
     VALIDATION_FAILED("One or more request fields failed validation"),
     SESSION_ID_REQUIRED("sessionId is required for this anonymous actor configuration"),
     PAYLOAD_TOO_LARGE("Request payload exceeds the maximum allowed size"),
+    UNSUPPORTED_MEDIA_TYPE("Request Content-Type is missing or is not application/json with UTF-8 charset"),
     TIMESTAMP_TOO_FAR_FUTURE("occurredAt is further in the future than the tenant's configured tolerance"),
     TIMESTAMP_TOO_OLD("occurredAt is older than the platform's archival cutoff"),
     POLICY_TYPE_NOT_SUPPORTED_IN_V1("Requested policy_type is not supported in V1"),

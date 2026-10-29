@@ -29,7 +29,7 @@ class ErrorCodeTest {
     @Test
     @DisplayName("registry contains exactly 33 codes after B-005 added TENANT_CONTEXT_MISSING and TRANSACTION_REQUIRED")
     void registryContainsExpectedCount() {
-        assertThat(ErrorCode.values()).hasSize(33);
+        assertThat(ErrorCode.values()).hasSize(34);
     }
 
     @Test
@@ -38,5 +38,13 @@ class ErrorCodeTest {
         assertThat(ErrorCode.OUTBOX_PUBLISH_FAILED.description())
                 .containsIgnoringCase("outbox")
                 .containsIgnoringCase("rabbitmq");
+    }
+
+    @Test
+    @DisplayName("UNSUPPORTED_MEDIA_TYPE exists and describes the Content-Type rule (Rule 16.4)")
+    void unsupportedMediaTypeCodeExists() {
+        assertThat(ErrorCode.UNSUPPORTED_MEDIA_TYPE.description())
+                .containsIgnoringCase("content-type")
+                .containsIgnoringCase("application/json");
     }
 }
