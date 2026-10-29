@@ -103,3 +103,15 @@ trustguard:
       username: ${ADMIN_SEED_USERNAME:}
       password: ${ADMIN_SEED_PASSWORD:}
       required: false
+
+  events:
+    # EVENT_HMAC_KEY (Ruling 50): base64, at least 32 bytes decoded (Rule 5.9). No usable default. The
+    # empty fallback exists only so EventHmacConfig, not Spring's placeholder resolver, rejects a
+    # missing key with a fixed message that never contains the value.
+    hmac-key: ${EVENT_HMAC_KEY:}
+  request-limits:
+    # Rule 16.3 body limits in bytes for the tenant chain, enforced by RequestLimitFilter.
+    # signals-bytes: /api/v1/signals/** (trackLogin, trackEvent, trackAction), 64 KB.
+    # default-bytes: every other /api/v1/** path (checkRisk and the rest), 16 KB.
+    signals-bytes: 65536
+    default-bytes: 16384
