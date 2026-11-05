@@ -8,9 +8,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.aop.support.AopUtils;
@@ -19,16 +17,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.trustguard.shared.enums.Capability;
-import com.trustguard.shared.enums.Environment;
 import com.trustguard.shared.error.EventPersistenceException;
 import com.trustguard.shared.error.TenantContextMissingException;
 import com.trustguard.signals.SignalsIntegrationTestBase;
 import com.trustguard.signals.domain.EventEnvelope;
 import com.trustguard.signals.repository.OutboxRepository;
 import com.trustguard.signals.repository.TrustEventRepository;
-import com.trustguard.tenant.context.TenantContext;
-import com.trustguard.tenant.context.TenantContextHolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -49,16 +43,6 @@ class IngestionServiceTransactionTest extends SignalsIntegrationTestBase {
 
     @Autowired
     private org.springframework.core.env.Environment springEnvironment;
-
-    @AfterEach
-    void clearTenantContext() {
-        TenantContextHolder.clear();
-    }
-
-    private static void authenticateAs(Seeded seeded) {
-        TenantContextHolder.set(new TenantContext(seeded.tenantId(), seeded.projectId(), "test-key-id",
-                Environment.PRODUCTION, Set.of(Capability.TRACK), 1));
-    }
 
     // ---------- the write path ----------
 
@@ -186,7 +170,7 @@ class IngestionServiceTransactionTest extends SignalsIntegrationTestBase {
     @DisplayName("persist without a tenant context throws TenantContextMissingException and stores nothing")
     void persistWithoutATenantContextIsRejected() {
         Seeded seeded = seed();
-        TenantContextHolder.clear();
+        // The base class @AfterEach clears the context, and we haven't authenticated yet here.
         EventEnvelope envelope = envelopeFor(seeded).build();
 
         assertThatThrownBy(() -> service.persist(envelope)).isInstanceOf(TenantContextMissingException.class);
@@ -224,7 +208,6 @@ class IngestionServiceTransactionTest extends SignalsIntegrationTestBase {
         for (Class<?> type : List.of(IngestionService.class, TrustEventRepository.class, OutboxRepository.class)) {
             for (String name : dependencyTypes(type)) {
                 assertThat(name).as(type.getSimpleName() + " dependency " + name)
-                        .doesNotStartWith(FORBIDDEN_TYPE_PREFIXES.get(0))
                         .satisfies(value -> FORBIDDEN_TYPE_PREFIXES
                                 .forEach(prefix -> assertThat(value).doesNotStartWith(prefix)))
                         .doesNotContain("ConnectionFactory");

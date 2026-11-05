@@ -8,14 +8,12 @@ import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Supplier;
 
 import javax.sql.DataSource;
 
+import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -31,9 +29,12 @@ import com.trustguard.shared.domain.EventId;
 import com.trustguard.shared.domain.ProjectId;
 import com.trustguard.shared.domain.TenantId;
 import com.trustguard.shared.enums.ActorType;
+import com.trustguard.shared.enums.Capability;
 import com.trustguard.shared.enums.Environment;
 import com.trustguard.shared.enums.EventType;
 import com.trustguard.signals.domain.EventEnvelope;
+import com.trustguard.tenant.context.TenantContext;
+import com.trustguard.tenant.context.TenantContextHolder;
 
 /**
  * Shared setup for the B-010c persistence tests. One singleton PostgreSQL container, started once per JVM. The
@@ -260,5 +261,19 @@ public abstract class SignalsIntegrationTestBase {
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
         }
+    }
+    /**
+     * Sets a valid tenantContext for the duration of the test, so the services tiggered during the test can
+     * read it
+     * @param seeded the tenant and the project to put in the context
+     */
+    protected void authenticateAs(Seeded seeded){
+        TenantContextHolder.set(new TenantContext(seeded.tenantId(), seeded.projectId(),
+                "test-key-id", Environment.PRODUCTION, Set.of(Capability.TRACK, Capability.CHECK),
+                1));
+    }
+    @AfterEach
+    void clearTenantContext(){
+        TenantContextHolder.clear();
     }
 }
