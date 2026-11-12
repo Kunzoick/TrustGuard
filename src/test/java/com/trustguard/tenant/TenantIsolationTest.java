@@ -14,6 +14,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 import java.util.UUID;
+import javax.sql.DataSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -73,6 +74,7 @@ public class TenantIsolationTest {
     }
 
     @Autowired
+    private DataSource dataSource;
     private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
@@ -81,6 +83,7 @@ public class TenantIsolationTest {
         // SET LOCAL ROLE is transaction-scoped — resets after
         // each test automatically. Superuser connection is
         // retained by HikariCP for the next test.
+        jdbcTemplate= new JdbcTemplate(dataSource);
         jdbcTemplate.execute("SET LOCAL ROLE trustguard_app");
     }
 
