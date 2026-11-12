@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.trustguard.shared.enums.ErrorCode;
 import com.trustguard.shared.error.EnvironmentMismatchException;
+import com.trustguard.shared.error.EventPersistenceException;
 import com.trustguard.shared.error.InvalidEventPayloadException;
 import com.trustguard.shared.error.InvalidIngestionRequestException;
 import com.trustguard.shared.error.InvalidIngestionRequestException.FieldDetail;
@@ -42,6 +43,7 @@ class IngestionExceptionHandlerTest {
     private static final String MESSAGE_SESSION = "sessionId is required for ANONYMOUS actors.";
     private static final String MESSAGE_PAYLOAD = "Event payload cannot be processed.";
     private static final String MESSAGE_ENVIRONMENT = "Event environment does not match the API key environment.";
+    private static final String MESSAGE_NOT_STORED = "The event could not be stored.";
 
     private final MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new ProbeController())
             .setControllerAdvice(new IngestionExceptionHandler())
@@ -90,6 +92,16 @@ class IngestionExceptionHandlerTest {
         @GetMapping("/probe/payload")
         String payload() {
             throw new InvalidEventPayloadException(SECRET_TEXT);
+        }
+
+        @GetMapping("/probe/persist")
+        String persist() {
+            throw new EventPersistenceException(SECRET_TEXT, false);
+        }
+
+        @GetMapping("/probe/persist-transient")
+        String persistTransient() {
+            throw new EventPersistenceException(SECRET_TEXT, true);
         }
 
         @GetMapping("/probe/boom")
@@ -177,9 +189,34 @@ class IngestionExceptionHandlerTest {
     }
 
     @Test
+    @DisplayName("a persistence failure that is not retryable is 500 INTERNAL_ERROR with fixed text")
+    void persistenceFailureIs500() throws Exception {
+        mockMvc.perform(get("/probe/persist"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().contentType(JSON_UTF8))
+                .andExpect(jsonPath("$.error.code").value("INTERNAL_ERROR"))
+                .andExpect(jsonPath("$.error.message").value(MESSAGE_NOT_STORED))
+                .andExpect(jsonPath("$.error.retryable").value(false))
+                .andExpect(jsonPath("$.error.details").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("a transient persistence failure is 503 INTERNAL_ERROR, retryable, with fixed text")
+    void transientPersistenceFailureIs503() throws Exception {
+        mockMvc.perform(get("/probe/persist-transient"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(content().contentType(JSON_UTF8))
+                .andExpect(jsonPath("$.error.code").value("INTERNAL_ERROR"))
+                .andExpect(jsonPath("$.error.message").value(MESSAGE_NOT_STORED))
+                .andExpect(jsonPath("$.error.retryable").value(true))
+                .andExpect(jsonPath("$.error.details").doesNotExist());
+    }
+
+    @Test
     @DisplayName("no body ever carries the text of the exception that caused it")
     void exceptionTextIsNeverEchoed() throws Exception {
-        for (String path : List.of("/probe/environment", "/probe/session", "/probe/payload")) {
+        for (String path : List.of("/probe/environment", "/probe/session", "/probe/payload", "/probe/persist",
+                "/probe/persist-transient")) {
             String text = mockMvc.perform(get(path)).andReturn().getResponse()
                     .getContentAsString(StandardCharsets.UTF_8);
 
@@ -193,11 +230,13 @@ class IngestionExceptionHandlerTest {
     void bodyShape() throws Exception {
         Map<String, Object> plain = body("/probe/plain");
         Map<String, Object> detailed = body("/probe/invalid");
+        Map<String, Object> persistence = body("/probe/persist");
 
         assertThat(plain).containsOnlyKeys("error");
         assertThat((Map<String, Object>) plain.get("error")).containsOnlyKeys("code", "message", "retryable");
         assertThat((Map<String, Object>) detailed.get("error"))
                 .containsOnlyKeys("code", "message", "retryable", "details");
+        assertThat((Map<String, Object>) persistence.get("error")).containsOnlyKeys("code", "message", "retryable");
     }
 
     @Test
@@ -209,7 +248,7 @@ class IngestionExceptionHandlerTest {
     }
 
     @Test
-    @DisplayName("the advice is scoped to the ingestion package and handles no broad exception type")
+    @DisplayName("the advice is scoped to the ingestion package and handles exactly five specific exception types")
     void adviceIsScopedAndHasNoCatchAll() {
         RestControllerAdvice advice = IngestionExceptionHandler.class.getAnnotation(RestControllerAdvice.class);
         List<Class<?>> handled = new ArrayList<>();
@@ -223,7 +262,7 @@ class IngestionExceptionHandlerTest {
         assertThat(advice.basePackages()).containsExactly("com.trustguard.api.ingestion");
         assertThat(handled).containsExactlyInAnyOrder(InvalidIngestionRequestException.class,
                 EnvironmentMismatchException.class, SessionIdRequiredException.class,
-                InvalidEventPayloadException.class);
+                InvalidEventPayloadException.class, EventPersistenceException.class);
         assertThat(handled).doesNotContain(Exception.class, RuntimeException.class, Throwable.class);
     }
 

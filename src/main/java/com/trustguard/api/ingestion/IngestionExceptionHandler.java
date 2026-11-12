@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.trustguard.shared.enums.ErrorCode;
 import com.trustguard.shared.error.EnvironmentMismatchException;
+import com.trustguard.shared.error.EventPersistenceException;
 import com.trustguard.shared.error.InvalidEventPayloadException;
 import com.trustguard.shared.error.InvalidIngestionRequestException;
 import com.trustguard.shared.error.InvalidIngestionRequestException.FieldDetail;
@@ -27,7 +28,9 @@ import com.trustguard.shared.error.SessionIdRequiredException;
  *
  * <p>Statuses: an invalid request, a missing session id and an unusable payload are 400. An event
  * whose environment differs from the API key's is 401, the same status the API key filter gives its
- * own environment mismatch, so one error code carries one status. Rule 5.3 prescribes no status.
+ * own environment mismatch, so one error code carries one status. Rule 5.3 prescribes no status. A
+ * persistence failure is 500, or 503 when the failure was transient and so worth a retry (Rule 16.6); its body
+ * has fixed text and never the exception's message.
  */
 @RestControllerAdvice(basePackages = "com.trustguard.api.ingestion")
 public class IngestionExceptionHandler {
@@ -45,6 +48,7 @@ public class IngestionExceptionHandler {
     private static final String MESSAGE_INVALID_PAYLOAD = "Event payload cannot be processed.";
     private static final String MESSAGE_ENVIRONMENT_MISMATCH =
             "Event environment does not match the API key environment.";
+    private static final String MESSAGE_NOT_STORED = "The event could not be stored.";
 
     private static final MediaType JSON_UTF8 = new MediaType(MediaType.APPLICATION_JSON, StandardCharsets.UTF_8);
 
@@ -57,7 +61,7 @@ public class IngestionExceptionHandler {
      */
     @ExceptionHandler(InvalidIngestionRequestException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidRequest(InvalidIngestionRequestException e) {
-        return response(HttpStatus.BAD_REQUEST, e.code(), e.getMessage(), e.details());
+        return response(HttpStatus.BAD_REQUEST, e.code(), e.getMessage(), false, e.details());
     }
 
     /**
@@ -68,7 +72,7 @@ public class IngestionExceptionHandler {
      */
     @ExceptionHandler(EnvironmentMismatchException.class)
     public ResponseEntity<Map<String, Object>> handleEnvironmentMismatch(EnvironmentMismatchException e) {
-        return response(HttpStatus.UNAUTHORIZED, e.code(), MESSAGE_ENVIRONMENT_MISMATCH, List.of());
+        return response(HttpStatus.UNAUTHORIZED, e.code(), MESSAGE_ENVIRONMENT_MISMATCH, false, List.of());
     }
 
     /**
@@ -79,7 +83,7 @@ public class IngestionExceptionHandler {
      */
     @ExceptionHandler(SessionIdRequiredException.class)
     public ResponseEntity<Map<String, Object>> handleSessionIdRequired(SessionIdRequiredException e) {
-        return response(HttpStatus.BAD_REQUEST, e.code(), MESSAGE_SESSION_ID_REQUIRED, List.of());
+        return response(HttpStatus.BAD_REQUEST, e.code(), MESSAGE_SESSION_ID_REQUIRED, false, List.of());
     }
 
     /**
@@ -90,15 +94,29 @@ public class IngestionExceptionHandler {
      */
     @ExceptionHandler(InvalidEventPayloadException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidPayload(InvalidEventPayloadException e) {
-        return response(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, MESSAGE_INVALID_PAYLOAD, List.of());
+        return response(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, MESSAGE_INVALID_PAYLOAD, false,
+                List.of());
+    }
+
+    /**
+     * Maps an event that could not be stored: 503 when the failure was transient, otherwise 500. The exception's
+     * own message is never sent.
+     *
+     * @param e the failure
+     * @return JSON 500 or 503 response
+     */
+    @ExceptionHandler(EventPersistenceException.class)
+    public ResponseEntity<Map<String, Object>> handlePersistenceFailure(EventPersistenceException e) {
+        HttpStatus status = e.retryable() ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.INTERNAL_SERVER_ERROR;
+        return response(status, ErrorCode.INTERNAL_ERROR, MESSAGE_NOT_STORED, e.retryable(), List.of());
     }
 
     private static ResponseEntity<Map<String, Object>> response(HttpStatus status, ErrorCode code, String message,
-                                                                List<FieldDetail> details) {
+                                                                boolean retryable, List<FieldDetail> details) {
         Map<String, Object> error = new LinkedHashMap<>();
         error.put(KEY_CODE, code.name());
         error.put(KEY_MESSAGE, message);
-        error.put(KEY_RETRYABLE, false);
+        error.put(KEY_RETRYABLE, retryable);
         if (!details.isEmpty()) {
             error.put(KEY_DETAILS, render(details));
         }

@@ -44,6 +44,11 @@ spring:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
+      # Rule 9.8: Redis calls time out after 50 ms; a failed idempotency write is "log a warning, continue"
+      # (Ruling 112). Without a timeout a blackholed Redis would stall every request that touches it,
+      # key lookup included. The test application.properties raises both so slow CI cannot flake.
+      timeout: ${REDIS_COMMAND_TIMEOUT:50ms}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:200ms}
 
   rabbitmq:
     host: ${SPRING_RABBITMQ_HOST:localhost}
