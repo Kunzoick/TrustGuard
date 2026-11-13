@@ -1,6 +1,7 @@
 package com.trustguard.signals.config;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -29,6 +30,7 @@ import com.trustguard.signals.dto.LoginEventDto;
 import com.trustguard.signals.mapper.EventEnvelopeMapper;
 import com.trustguard.signals.parser.IngestionRequestParser;
 import com.trustguard.signals.util.AnonymousActorIdGenerator;
+import com.trustguard.signals.util.EventIdGenerator;
 import com.trustguard.signals.util.IdempotencyKeyGenerator;
 import com.trustguard.signals.validation.IngestionRequestGuard;
 
@@ -46,6 +48,8 @@ class IngestionConfigTest {
     private static final int KEY_BYTES = 32;
     private static final int MAX_TEXT = 255;
     private static final String SECRET = "secret-value";
+    private static final int VERSION_CHAR_INDEX = 14;
+    private static final char VERSION_7 = '7';
     private static final TenantId TENANT = new TenantId("123e4567-e89b-12d3-a456-426614174000");
     private static final ProjectId PROJECT = new ProjectId("223e4567-e89b-12d3-a456-426614174000");
     private static final EventId EVENT_ID = new EventId("323e4567-e89b-12d3-a456-426614174000");
@@ -58,7 +62,8 @@ class IngestionConfigTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withUserConfiguration(EventHmacConfig.class, IngestionConfig.class)
-            .withBean(Validator.class, () -> VALIDATOR);
+            .withBean(Validator.class, () -> VALIDATOR)
+            .withBean(Clock.class, Clock::systemUTC);
 
     private static byte[] key() {
         byte[] key = new byte[KEY_BYTES];
@@ -97,15 +102,27 @@ class IngestionConfigTest {
     }
 
     @Test
-    @DisplayName("the mapper, parser, guard and both generators are single beans")
+    @DisplayName("the mapper, parser, guard, event id generator and both generators are single beans")
     void allIngestionBeansAreStarted() {
         runner.withPropertyValues(PROPERTY + "=" + base64Key()).run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context).hasSingleBean(EventEnvelopeMapper.class);
             assertThat(context).hasSingleBean(IngestionRequestParser.class);
             assertThat(context).hasSingleBean(IngestionRequestGuard.class);
+            assertThat(context).hasSingleBean(EventIdGenerator.class);
             assertThat(context).hasSingleBean(AnonymousActorIdGenerator.class);
             assertThat(context).hasSingleBean(IdempotencyKeyGenerator.class);
+        });
+    }
+
+    @Test
+    @DisplayName("the event id generator bean makes UUID v7 ids and no SecureRandom bean exists")
+    void theEventIdGeneratorMakesVersionSevenIds() {
+        runner.withPropertyValues(PROPERTY + "=" + base64Key()).run(context -> {
+            String id = context.getBean(EventIdGenerator.class).generate().value();
+
+            assertThat(id.charAt(VERSION_CHAR_INDEX)).isEqualTo(VERSION_7);
+            assertThat(context.getBeanNamesForType(java.security.SecureRandom.class)).isEmpty();
         });
     }
 
@@ -152,6 +169,7 @@ class IngestionConfigTest {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(ValidationAutoConfiguration.class))
                 .withUserConfiguration(EventHmacConfig.class, IngestionConfig.class)
+                .withBean(Clock.class, Clock::systemUTC)
                 .withPropertyValues(PROPERTY + "=" + base64Key())
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -187,6 +205,7 @@ class IngestionConfigTest {
     void aMissingValidatorStopsTheApplication() {
         new ApplicationContextRunner()
                 .withUserConfiguration(EventHmacConfig.class, IngestionConfig.class)
+                .withBean(Clock.class, Clock::systemUTC)
                 .withPropertyValues(PROPERTY + "=" + base64Key())
                 .run(context -> {
                     assertThat(context).hasFailed();

@@ -1,6 +1,7 @@
 package com.trustguard.signals.service;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.TransientDataAccessException;
@@ -8,10 +9,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.trustguard.shared.domain.EventId;
 import com.trustguard.shared.error.EventPersistenceException;
 import com.trustguard.shared.error.TenantContextMissingException;
 import com.trustguard.signals.domain.EventEnvelope;
 import com.trustguard.signals.domain.OutboxMessage;
+import com.trustguard.signals.repository.IdempotencyKeyRepository;
 import com.trustguard.signals.repository.OutboxRepository;
 import com.trustguard.signals.repository.TrustEventRepository;
 import com.trustguard.tenant.context.TenantContext;
@@ -40,11 +43,14 @@ public class IngestionService {
     private static final String MESSAGE_PERSIST_FAILED = "The event could not be stored.";
     private final TrustEventRepository events;
     private final OutboxRepository outbox;
+    private final IdempotencyKeyRepository idempotencyKeys;
 
     //creates the service
-    public IngestionService(TrustEventRepository events, OutboxRepository outbox){
+    public IngestionService(TrustEventRepository events, OutboxRepository outbox,
+                            IdempotencyKeyRepository idempotencyKeys){
         this.events= Objects.requireNonNull(events, "events");
         this.outbox= Objects.requireNonNull(outbox, "outbox");
+        this.idempotencyKeys= Objects.requireNonNull(idempotencyKeys, "idempotencyKeys");
     }
     //stores the event and its outbox row in one transaction
     @Transactional(propagation = Propagation.REQUIRED)
@@ -52,12 +58,38 @@ public class IngestionService {
         Objects.requireNonNull(envelope, "envelope");
         requireSameTenant(envelope);
         try{
-            events.insert(envelope);
-            outbox.insert(OutboxMessage.from(envelope));
+            insertRows(envelope);
         }catch (DataAccessException ex){
-            throw new EventPersistenceException(MESSAGE_PERSIST_FAILED, ex instanceof TransientDataAccessException);
+           throw persistenceFailure(ex);
         }
+        return persisted(envelope);
+    }
+    //claims the idempotency key, then stored the event and its outbox row, all in one transaction
+    @Transactional(propagation = Propagation.REQUIRED)
+    public IngestionResult accept(EventEnvelope envelope){
+        Objects.requireNonNull(envelope, "envelope");
+        requireSameTenant(envelope);
+        try{
+            Optional<EventId> original= idempotencyKeys.claimOrFindOriginal(envelope);
+            if(original.isPresent()){
+                return new IngestionResult.Duplicate(original.get());
+            }
+            insertRows(envelope);
+        }catch (DataAccessException ex){
+            throw persistenceFailure(ex);
+        }
+        PersistedEvent stored= persisted(envelope);
+        return new IngestionResult.Accepted(stored.eventId(), stored.receivedAt());
+    }
+    private void insertRows(EventEnvelope envelope){
+        events.insert(envelope);
+        outbox.insert(OutboxMessage.from(envelope));
+    }
+    private static PersistedEvent persisted(EventEnvelope envelope){
         return new PersistedEvent(envelope.eventId(), envelope.receivedAt().truncatedTo(ChronoUnit.MICROS));
+    }
+    private static EventPersistenceException persistenceFailure(DataAccessException ex){
+        return new EventPersistenceException(MESSAGE_PERSIST_FAILED, ex instanceof TransientDataAccessException);
     }
     private static void requireSameTenant(EventEnvelope envelope){
         TenantContext context= TenantContextHolder.get();

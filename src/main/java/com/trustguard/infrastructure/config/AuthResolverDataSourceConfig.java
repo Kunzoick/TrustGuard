@@ -1,6 +1,7 @@
 package com.trustguard.infrastructure.config;
 import javax.sql.DataSource;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -61,7 +62,8 @@ public class AuthResolverDataSourceConfig {
         return new HikariDataSource(config);
     }
     @Bean(name= "authResolverJdbcTemplate")
-    public JdbcTemplate authResolverJdbcTemplate(DataSource authResolverDataSource){
+    public JdbcTemplate authResolverJdbcTemplate(@Qualifier("authResolverDataSource")
+                                                     DataSource authResolverDataSource){
         return new JdbcTemplate(authResolverDataSource);
     }
 }
