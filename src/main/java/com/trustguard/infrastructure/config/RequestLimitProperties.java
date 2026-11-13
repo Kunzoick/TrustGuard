@@ -11,16 +11,21 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param defaultBytes limit for every other /api/v1/** path
  */
 @ConfigurationProperties("trustguard.request-limits")
-public record RequestLimitProperties(int signalsBytes, int defaultBytes) {
+public record RequestLimitProperties(int signalsBytes, int defaultBytes, int adminBytes) {
     private static final int MAX_LIMIT_BYTES= Integer.MAX_VALUE - 1;
-    //validates both limits
+    private static final String PROPERTY_SIGNALS = "trustguard.request-limits.signals-bytes";
+    private static final String PROPERTY_DEFAULT = "trustguard.request-limits.default-bytes";
+    private static final String PROPERTY_ADMIN = "trustguard.request-limits.admin-bytes";
+    private static final String MESSAGE_SUFFIX = " must be a positive number of bytes below Integer.MAX_VALUE.";
+    //validates all limits
     public RequestLimitProperties{
-        requireValid(signalsBytes, "trustguard.request-limits.signals-bytes");
-        requireValid(defaultBytes, "trustguard.request-limits.default-bytes");
+        requireValid(signalsBytes, PROPERTY_SIGNALS);
+        requireValid(defaultBytes, PROPERTY_DEFAULT);
+        requireValid(adminBytes, PROPERTY_ADMIN);
     }
-    private void requireValid(int limit, String property){
+    private static void requireValid(int limit, String property){
         if(limit < 1 || limit > MAX_LIMIT_BYTES){
-            throw new IllegalArgumentException(property + " must be a positive number of bytes.");
+            throw new IllegalStateException(property + MESSAGE_SUFFIX);
         }
     }
 }
