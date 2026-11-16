@@ -55,8 +55,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * B-010a AC 7 and 9 on a real server: authentication wins over the Content-Type and size checks (Rule 5.7), the
- * checks apply to authenticated requests although no controller exists, the admin chain is untouched, and TRACE
- * and TRACK are not accepted. The filter order is read from the real FilterChainProxy.
+ * checks apply to authenticated requests although no controller exists, the admin chain has its own limit filter,
+ * AdminRequestLimitFilter (B-007c), and TRACE and TRACK are not accepted. The filter order is read from the real
+ * FilterChainProxy.
  *
  * <p>A request that passes the filter is asserted only as "the filter did not answer": an unmapped POST may be
  * 404 or 405, and a later controller would make it 202. The EVENT_HMAC_KEY comes from the test
@@ -368,17 +369,17 @@ class RequestLimitChainTest {
         }
     }
 
-    // ---------- admin chain (AC 7) ----------
+    // ---------- admin chain (B-010a AC 7, amended by Ruling 131) ----------
 
     @Test
-    @DisplayName("the admin chain is unchanged: an oversize admin body is not answered with our 413")
-    void theAdminChainIsUnchanged() throws Exception {
+    @DisplayName("the admin chain has its own limit filter: an oversize admin body is 413 PAYLOAD_TOO_LARGE")
+    void theAdminChainHasItsOwnLimitFilter() throws Exception {
         String body = "{\"username\":\"nobody\",\"password\":\"" + "a".repeat(ADMIN_OVERSIZE_BYTES) + "\"}";
 
         HttpResponse<String> response = post(ADMIN_LOGIN_PATH, JSON, body, null);
 
-        assertThat(response.statusCode()).isNotEqualTo(HTTP_413);
-        assertThat(response.body()).doesNotContain("PAYLOAD_TOO_LARGE");
+        assertThat(response.statusCode()).isEqualTo(HTTP_413);
+        assertThat(response.body()).contains("\"code\":\"PAYLOAD_TOO_LARGE\"").contains("\"retryable\":false");
     }
 
     // ---------- placement (AC 7) ----------
