@@ -39,6 +39,8 @@
     <archunit.version>1.3.0</archunit.version>
     <jqwik.version>1.9.1</jqwik.version>
     <testcontainers.version>1.21.4</testcontainers.version>
+    <!-- Overrides the Spring Boot 4.1.1 managed Tomcat 11.0.24 (CVEs fixed in 11.0.25 to 11.0.27). Remove when the Boot BOM manages 11.0.27 or later. -->
+    <tomcat.version>11.0.27</tomcat.version>
 
     <!-- Static analysis plugin versions -->
     <checkstyle.plugin.version>3.6.0</checkstyle.plugin.version>
@@ -172,7 +174,7 @@
     <!-- ============ OpenAPI — Rule 13.8 ============ -->
     <dependency>
       <groupId>org.springdoc</groupId>
-      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+      <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
       <version>${springdoc-openapi.version}</version>
     </dependency>
 
