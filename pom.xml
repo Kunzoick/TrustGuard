@@ -399,6 +399,9 @@
         <configuration>
           <failBuildOnCVSS>${dependency-check.failBuildOnCVSS}</failBuildOnCVSS>
           <nvdApiKey>${nvd.api.key}</nvdApiKey>
+          <ossindexAnalyzerUrl>https://api.guide.sonatype.com</ossindexAnalyzerUrl>
+          <ossIndexUsername>${env.OSS_INDEX_USERNAME}</ossIndexUsername>
+          <ossIndexPassword>${env.OSS_INDEX_PASSWORD}</ossIndexPassword>
           <suppressionFiles>
             <suppressionFile>dependency-check-suppression.xml</suppressionFile>
           </suppressionFiles>
