@@ -28,7 +28,7 @@ import com.trustguard.signals.constants.SignalConstants;
  * <p>This class checks shape and type only, never values. Failures throw
  * {@link InvalidEventPayloadException} with fixed messages that never contain payload content.
  */
-public class PayloadSnapshot {
+public final class PayloadSnapshot {
     private static final int ROOT_DEPTH= 1;
     private static final int NODE_BUDGET = SignalConstants.MAX_CANONICAL_CHARS;
     private static final Set<Class<?>> IMMUTABLE_NUMBER_TYPES= Set.of(Byte.class, Short.class, Integer.class, Long.class
