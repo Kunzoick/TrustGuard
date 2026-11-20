@@ -187,6 +187,8 @@ jobs:
         run: mvn -B dependency-check:check -Dnvd.api.key=${{ secrets.NVD_API_KEY }}
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          OSS_INDEX_USERNAME: ${{ secrets.OSS_INDEX_USERNAME }}
+          OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
 
       # CF-001 resolved: SHA verified against
       # https://github.com/docker/build-push-action/releases/tag/v7.2.0
