@@ -10,6 +10,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.trustguard.api.admin.repository.AdminUserRepository;
+import com.trustguard.infrastructure.config.RequestLimitProperties;
 import com.trustguard.shared.enums.ErrorCode;
 
 import tools.jackson.databind.ObjectMapper;
@@ -45,8 +46,10 @@ public class AdminSecurityConfig {
     @Order(1)
     public SecurityFilterChain adminFilterChain(HttpSecurity http, AdminJwtService jwtService,
                                                 AdminUserRepository repository,
-                                                Clock clock, ObjectMapper objectMapper) throws Exception{
+                                                Clock clock, ObjectMapper objectMapper,
+                                                RequestLimitProperties requestLimits) throws Exception{
         AdminJwtFilter jwtFilter= new AdminJwtFilter(jwtService, repository, clock, objectMapper);
+        AdminRequestLimitFilter limitFilter= new AdminRequestLimitFilter(requestLimits.adminBytes());
         http
                 .securityMatcher(ADMIN_PATTERN).csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session
@@ -56,10 +59,12 @@ public class AdminSecurityConfig {
                         .permitAll().anyRequest().authenticated())
                 .exceptionHandling(handling -> handling
                         .authenticationEntryPoint((request, response, e)
-                        -> AdminJwtFilter.writeError(response, objectMapper,
+                                -> AdminJwtFilter.writeError(response, objectMapper,
                                 new AdminAuthenticationException(ErrorCode.ADMIN_AUTHENTICATION_FAILED,
-                        HTTP_UNAUTHORIZED, "Authentication required."))))
-                        .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                                        HTTP_UNAUTHORIZED, "Authentication required."))))
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(limitFilter, AdminJwtFilter.class);
+
                 return http.build();
     }
 }
