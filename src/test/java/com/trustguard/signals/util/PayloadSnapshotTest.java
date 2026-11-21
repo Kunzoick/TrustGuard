@@ -2,12 +2,12 @@ package com.trustguard.signals.util;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +23,6 @@ import com.trustguard.signals.constants.SignalConstants;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 class PayloadSnapshotTest {
 
@@ -37,7 +36,6 @@ class PayloadSnapshotTest {
     /** The root map and the list that holds the integers in a flat payload. */
     private static final int FLAT_PAYLOAD_CONTAINERS = 2;
 
-    private static final int FAN_OUT_TIMEOUT_SECONDS = 10;
     private static final int VALID_LIST_SIZE = 16000;
     private static final int OVERSIZE_LIST_SIZE = 40000;
 
@@ -59,11 +57,49 @@ class PayloadSnapshotTest {
         return value;
     }
 
-    /** Containers nested like {@link #nested(int)}, but each level holds the previous one twice. */
-    private static Object sharedFanOut(int containers) {
-        Object value = new ArrayList<Object>();
+    /**
+     * A list that counts how many items PayloadSnapshot reads from it. All lists of one payload share one counter,
+     * so the counter is the total traversal work (Ruling 75: count work, never time). If the count reaches
+     * NODE_BUDGET + 1 the budget has failed to stop the traversal, and the list throws an AssertionError so the
+     * test fails quickly instead of walking about 2^30 leaves.
+     */
+    @SuppressWarnings("serial")
+    private static final class CountingList extends ArrayList<Object> {
+
+        private final AtomicInteger reads;
+
+        CountingList(AtomicInteger reads) {
+            this.reads = reads;
+        }
+
+        @Override
+        public Iterator<Object> iterator() {
+            Iterator<Object> delegate = super.iterator();
+            return new Iterator<>() {
+                @Override
+                public boolean hasNext() {
+                    return delegate.hasNext();
+                }
+
+                @Override
+                public Object next() {
+                    if (reads.incrementAndGet() >= NODE_BUDGET + 1) {
+                        throw new AssertionError("The node budget did not stop the traversal");
+                    }
+                    return delegate.next();
+                }
+            };
+        }
+    }
+
+    /**
+     * Containers nested like {@link #nested(int)}, but each level holds the previous one twice, and every list
+     * counts its reads in the shared counter.
+     */
+    private static Object countingFanOut(int containers, AtomicInteger reads) {
+        Object value = new CountingList(reads);
         for (int level = 1; level < containers; level++) {
-            List<Object> outer = new ArrayList<>();
+            List<Object> outer = new CountingList(reads);
             outer.add(value);
             outer.add(value);
             value = outer;
@@ -357,15 +393,21 @@ class PayloadSnapshotTest {
     // ---------- node budget (Ruling 73) ----------
 
     @Test
-    @DisplayName("a shared sub-object with fan-out 2 is stopped by the node budget, quickly")
+    @DisplayName("a shared sub-object with fan-out 2 is stopped by the node budget, counted in work, not time")
     void fanOutIsStoppedByTheNodeBudget() {
-        Map<String, Object> payload = entry("n", sharedFanOut(SignalConstants.MAX_NESTING_DEPTH - 1));
+        AtomicInteger reads = new AtomicInteger();
+        Map<String, Object> payload = entry("n",
+                countingFanOut(SignalConstants.MAX_NESTING_DEPTH - 1, reads));
 
-        assertTimeoutPreemptively(Duration.ofSeconds(FAN_OUT_TIMEOUT_SECONDS), () -> {
-            assertThatThrownBy(() -> PayloadSnapshot.copyOf(payload))
-                    .isInstanceOf(InvalidEventPayloadException.class)
-                    .hasMessage(BUDGET_MESSAGE);
-        });
+        assertThatThrownBy(() -> PayloadSnapshot.copyOf(payload))
+                .isInstanceOf(InvalidEventPayloadException.class)
+                .hasMessage(BUDGET_MESSAGE);
+
+        // Bound: every counted read is followed by one Budget.spend() attempt, and the budget throws on attempt
+        // NODE_BUDGET + 1. The root map and the top-level list spend without a counted read, so at most
+        // NODE_BUDGET - 1 reads happen. NODE_BUDGET is a looser bound that still excludes any unbounded walk.
+        // Above 0 proves the counting list was really traversed, so the bound is not satisfied vacuously.
+        assertThat(reads.get()).isPositive().isLessThanOrEqualTo(NODE_BUDGET);
     }
 
     @Test
